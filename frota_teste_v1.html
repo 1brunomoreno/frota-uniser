@@ -294,6 +294,35 @@ tr:hover td{background:var(--gray-50)}
 .wash-btn{width:100%;padding:12px;background:linear-gradient(120deg,#0369A1,#0EA5E9);color:#fff;border:none;border-radius:var(--r10);font-size:14px;font-weight:700;font-family:var(--fh);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:var(--t)}
 .wash-btn:hover{background:linear-gradient(120deg,#075985,#0284C7)}
 .lav-section-hdr{font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+
+/* DIAS PASSADOS NO CALENDÁRIO */
+.cal-day.past-d{background:#F1F3F7;opacity:.65;}
+.cal-day.past-d .cdn{color:var(--gray-300);}
+.cal-day.past-d:hover{border-color:transparent;background:#F1F3F7;cursor:default;}
+
+/* BADGE VEÍCULO NO SELECT DO FORMULÁRIO */
+#rv-vei-status{display:flex;align-items:center;gap:8px;padding:7px 11px;border-radius:var(--r10);font-size:12px;font-weight:600;font-family:var(--fh);margin-top:5px;border:1.5px solid transparent}
+.vst-ok{background:var(--green-l);color:var(--green2);border-color:#a7f3d0}
+.vst-res{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
+.vst-uso{background:#DBEAFE;color:#1E40AF;border-color:#BFDBFE}
+.vst-mnt{background:var(--danger-l);color:var(--danger);border-color:#f5c0bc}
+
+/* ALERTA MANUTENÇÃO */
+.km-alert-bar{background:#FEF3C7;border:1.5px solid #FDE68A;border-radius:var(--r10);padding:9px 13px;font-size:12px;color:#92400E;display:flex;align-items:flex-start;gap:8px;margin-bottom:10px}
+.km-alert-bar.danger{background:var(--danger-l);border-color:#f5c0bc;color:var(--danger)}
+
+/* MINHAS RESERVAS */
+.my-res-card{background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r14);padding:13px 16px;margin-bottom:9px;box-shadow:var(--sh0)}
+.my-res-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.my-res-vname{font-family:var(--fh);font-weight:700;font-size:13px;color:var(--gray-900)}
+.my-res-meta{font-size:11px;color:var(--gray-400);margin-top:2px}
+
+/* RELATÓRIO POR DEPTO */
+.depto-bar-wrap{margin-bottom:8px}
+.depto-bar-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:var(--gray-700);font-family:var(--fh);font-weight:600}
+.depto-bar-bg{background:var(--gray-100);border-radius:20px;height:8px;overflow:hidden}
+.depto-bar-fill{height:8px;border-radius:20px;background:linear-gradient(90deg,var(--blue),var(--blue3));transition:.4s}
+
 </style>
 </head>
 <body>
@@ -387,6 +416,26 @@ tr:hover td{background:var(--gray-50)}
       <div class="cal-detail" id="cal-detail"></div>
     </div>
 
+    <!-- MINHAS RESERVAS -->
+    <div class="form-card" id="minhas-res-sec" style="display:none">
+      <div class="form-card-hdr" style="background:linear-gradient(120deg,var(--blue2),var(--blue3))">
+        <i class="ti ti-calendar-user"></i>
+        <div><h2>Minhas Reservas</h2><p>Histórico e reservas ativas do seu usuário</p></div>
+      </div>
+      <div class="form-card-body">
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <select class="fi" style="flex:1;min-width:120px;font-size:12px" id="my-res-fil" onchange="renderMinhasRes()">
+            <option value="">Todos os status</option>
+            <option value="pendente">Pendente</option>
+            <option value="aprovado">Aprovado</option>
+            <option value="negado">Negado</option>
+            <option value="concluido">Concluído</option>
+          </select>
+        </div>
+        <div id="minhas-res-list"></div>
+      </div>
+    </div>
+
     <!-- SOLICITAR RESERVA (segundo) -->
     <div class="form-card" id="form-res">
       <div class="form-card-hdr">
@@ -395,7 +444,7 @@ tr:hover td{background:var(--gray-50)}
       </div>
       <div class="form-card-body">
         <div class="g2">
-          <div class="fg"><label class="flbl">Veículo</label><select class="fi" id="rv-vei"></select></div>
+          <div class="fg"><label class="flbl">Veículo</label><select class="fi" id="rv-vei" onchange="checkConflictLive();updateVeiculoStatus()"></select><div id="rv-vei-status" style="display:none"></div></div>
           <div class="fg"><label class="flbl">Departamento</label><input class="fi" id="rv-dep" placeholder="Seu departamento"></div>
         </div>
         <div class="g2">
@@ -405,11 +454,11 @@ tr:hover td{background:var(--gray-50)}
         <!-- Por hora -->
         <div class="fg">
           <label class="flbl">Data da utilização</label>
-          <input type="date" class="fi" id="rv-data">
+          <input type="date" class="fi" id="rv-data" onchange="checkConflictLive()">
         </div>
         <div class="g2">
-          <div class="fg"><label class="flbl">Hora de saída</label><input type="time" class="fi" id="rv-hora-saida"></div>
-          <div class="fg"><label class="flbl">Hora de retorno</label><input type="time" class="fi" id="rv-hora-ret"></div>
+          <div class="fg"><label class="flbl">Hora de saída</label><input type="time" class="fi" id="rv-hora-saida" onchange="checkConflictLive()"></div>
+          <div class="fg"><label class="flbl">Hora de retorno</label><input type="time" class="fi" id="rv-hora-ret" onchange="checkConflictLive()"></div>
         </div>
         <div style="background:var(--blue-xl);border-radius:var(--r10);padding:9px 13px;font-size:12px;color:var(--blue3);margin-bottom:13px;display:flex;gap:7px">
           <i class="ti ti-info-circle" style="flex-shrink:0"></i>
@@ -417,9 +466,10 @@ tr:hover td{background:var(--gray-50)}
         </div>
         <div class="fg"><label class="flbl">Destino / Finalidade</label><input class="fi" id="rv-dst" placeholder="Ex: Reunião em Santo André — Campus Norte"></div>
         <div class="fg"><label class="flbl">Observações (opcional)</label><textarea class="fi" id="rv-obs" placeholder="Detalhes, motorista, equipamentos…"></textarea></div>
+        <div id="rv-conflict-msg" style="display:none;border-radius:var(--r10);padding:10px 14px;font-size:13px;align-items:flex-start;gap:9px;border:1px solid;margin-bottom:4px"></div>
         <div class="form-footer">
           <button class="btn btn-ghost" onclick="limparRv()"><i class="ti ti-x"></i> Limpar</button>
-          <button class="btn btn-p btn-lg" onclick="enviarReserva()"><i class="ti ti-send"></i> Enviar solicitação</button>
+          <button class="btn btn-p btn-lg" id="rv-submit-btn" onclick="enviarReserva()"><i class="ti ti-send"></i> Enviar solicitação</button>
         </div>
       </div>
     </div>
@@ -493,6 +543,7 @@ tr:hover td{background:var(--gray-50)}
           <div class="atab" id="atb-checklist" onclick="aTab('checklist')"><i class="ti ti-steering-wheel"></i> Checklists</div>
           <div class="atab" id="atb-cpfs" onclick="aTab('cpfs')"><i class="ti ti-id-badge-2"></i> CPFs</div>
           <div class="atab" id="atb-lavagem" onclick="aTab('lavagem')"><i class="ti ti-droplet"></i> Lavagens</div>
+          <div class="atab" id="atb-depto" onclick="aTab('depto')"><i class="ti ti-chart-pie"></i> Por Depto</div>
         </div>
         <div class="admin-pane on" id="ap-aprov"></div>
         <div class="admin-pane" id="ap-reservas">
@@ -541,6 +592,7 @@ tr:hover td{background:var(--gray-50)}
           </div>
           <div id="lav-adm-list"></div>
         </div>
+        <div class="admin-pane" id="ap-depto"><div id="depto-body"></div></div>
         <div class="admin-pane" id="ap-cpfs">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
             <div style="font-size:13px;color:var(--gray-500)">Motoristas autorizados a utilizar os veículos da frota</div>
@@ -595,6 +647,7 @@ tr:hover td{background:var(--gray-50)}
   <div class="fg"><label class="flbl">CPF</label><input class="fi" id="cpf-f-num" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)" style="font-family:monospace;font-size:15px;letter-spacing:1px"></div>
   <div class="fg"><label class="flbl">Nome completo</label><input class="fi" id="cpf-f-nome" placeholder="Nome do motorista"></div>
   <div class="fg"><label class="flbl">Departamento</label><input class="fi" id="cpf-f-dep" placeholder="Departamento ou setor"></div>
+  <div class="fg"><label class="flbl">Telefone / WhatsApp</label><input class="fi" id="cpf-f-tel" placeholder="(11) 99999-0000" maxlength="15" oninput="maskTel(this)"></div>
   <div class="fg"><label class="flbl">Data de assinatura do termo</label><input type="date" class="fi" id="cpf-f-data"></div>
   <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="cpf-f-obs" rows="2" style="resize:vertical" placeholder="CNH, vencimento, restrições…"></textarea></div>
   <input type="hidden" id="cpf-f-id">
@@ -678,6 +731,7 @@ function toast(msg,type='info'){const el=document.createElement('div');el.classN
 function ov(id){$(id).classList.add('on')}
 function cov(id){$(id).classList.remove('on')}
 const fmt=s=>{if(!s)return'—';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`};
+function maskTel(el){let v=el.value.replace(/\D/g,'');if(v.length>11)v=v.slice(0,11);if(v.length>10)v=v.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3');else if(v.length>6)v=v.replace(/(\d{2})(\d{4,5})(\d{0,4})/,'($1) $2-$3');else if(v.length>2)v=v.replace(/(\d{2})(\d+)/,'($1) $2');el.value=v;}
 function maskCPF(el){let v=el.value.replace(/\D/g,'');if(v.length>11)v=v.slice(0,11);v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');el.value=v;}
 function cleanCPF(s){return(s||'').replace(/\D/g,'')}
 function validCPF(s){
@@ -747,6 +801,7 @@ async function doLoginCPF(){
   $('hero-user-info').innerHTML=`<div class="hero-user"><i class="ti ti-user-check"></i> Bem-vindo, ${found.nome.split(' ')[0]} — ${found.departamento||'—'}</div>`;
   $('rv-resp').value=found.nome;
   $('rv-dep').value=found.departamento||'';
+  $('rv-tel').value=found.telefone||'';
   $('s-login').classList.remove('on');
   $('s-app').classList.add('on');
   renderAll();
@@ -763,7 +818,7 @@ function doLogout(){currentUser=null;adminLogado=false;$('admin-panel').style.di
 /* ============================================================
    RENDER ALL
 ============================================================ */
-function renderAll(){renderStats();renderVgrid();renderRvVeiculos();renderCal();}
+function renderAll(){renderStats();renderVgrid();renderRvVeiculos();renderCal();renderMinhasRes();checkKmAlerts();}
 
 /* STATUS */
 function vSt(v){
@@ -791,7 +846,38 @@ function renderVgrid(){
 
 /* RESERVA FORM */
 function renderRvVeiculos(){$('rv-vei').innerHTML=veiculos.filter(v=>v.status!=='manutencao').map(v=>`<option value="${v.id}">${v.nome} (${v.placa})</option>`).join('');}
-function limparRv(){['rv-dep','rv-tel','rv-dst','rv-obs'].forEach(id=>$(id).value='');$('rv-data').value=TODAY;$('rv-hora-saida').value=NOW;$('rv-hora-ret').value=NOW;}
+function limparRv(){['rv-dep','rv-tel','rv-dst','rv-obs'].forEach(id=>$(id).value='');$('rv-data').value=TODAY;$('rv-hora-saida').value=NOW;$('rv-hora-ret').value=NOW;const m=$('rv-conflict-msg');if(m){m.style.display='none';}const b=$('rv-submit-btn');if(b){b.disabled=false;b.style.opacity='';}}
+
+/* Verifica conflitos em tempo real ao mudar veículo/data/hora */
+function checkConflictLive(){
+  const vId=$('rv-vei').value;
+  const data=$('rv-data').value;
+  const hsai=$('rv-hora-saida').value;
+  const hret=$('rv-hora-ret').value;
+  const msg=$('rv-conflict-msg');
+  const btn=$('rv-submit-btn');
+  if(!vId||!data||!hsai||!hret||hsai>=hret){msg.style.display='none';btn.disabled=false;btn.style.opacity='';return;}
+  // Conflito com APROVADO → bloqueia
+  const confAprov=reservas.find(r=>String(r.veiculo_id)===String(vId)&&r.status==='aprovado'&&r.data_saida===data&&!(r.hora_retorno<=hsai||r.hora_saida>=hret));
+  if(confAprov){
+    const v=veiculos.find(x=>String(x.id)===String(vId));
+    msg.style.cssText='display:flex;border-radius:var(--r10);padding:10px 14px;font-size:13px;align-items:flex-start;gap:9px;border:1px solid;margin-bottom:4px;background:#FEF2F2;border-color:#FECACA;color:#991B1B;';
+    msg.innerHTML=`<i class="ti ti-ban" style="flex-shrink:0;margin-top:1px"></i><span><strong>Horário indisponível.</strong> ${v?.nome||'Este veículo'} já possui reserva <strong>aprovada</strong> das ${confAprov.hora_saida} às ${confAprov.hora_retorno} por ${confAprov.responsavel}. Escolha outro veículo ou horário.</span>`;
+    btn.disabled=true;btn.style.opacity='0.45';
+    return;
+  }
+  // Conflito com PENDENTE → avisa mas permite
+  const confPend=reservas.find(r=>String(r.veiculo_id)===String(vId)&&r.status==='pendente'&&r.data_saida===data&&!(r.hora_retorno<=hsai||r.hora_saida>=hret));
+  if(confPend){
+    msg.style.cssText='display:flex;border-radius:var(--r10);padding:10px 14px;font-size:13px;align-items:flex-start;gap:9px;border:1px solid;margin-bottom:4px;background:#FFFBEB;border-color:#FDE68A;color:#92400E;';
+    msg.innerHTML=`<i class="ti ti-alert-triangle" style="flex-shrink:0;margin-top:1px"></i><span><strong>Atenção:</strong> já existe uma solicitação <strong>pendente</strong> das ${confPend.hora_saida} às ${confPend.hora_retorno} para este veículo. Você pode enviar mesmo assim — o administrador decidirá qual aprovar.</span>`;
+    btn.disabled=false;btn.style.opacity='';
+    return;
+  }
+  // Sem conflito
+  msg.style.display='none';
+  btn.disabled=false;btn.style.opacity='';
+}
 
 async function enviarReserva(){
   const vId=$('rv-vei').value,dep=$('rv-dep').value.trim(),resp=$('rv-resp').value.trim();
@@ -800,11 +886,12 @@ async function enviarReserva(){
   const dst=$('rv-dst').value.trim(),obs=$('rv-obs').value.trim();
   if(!dep||!resp||!data||!hsai||!hret||!dst){toast('Preencha todos os campos obrigatórios.','err');return}
   if(hret<=hsai){toast('A hora de retorno deve ser após a hora de saída.','err');return}
-  const conf=reservas.find(r=>r.veiculo_id===vId&&r.status==='aprovado'&&r.data_saida===data&&!(r.hora_retorno<=hsai||r.hora_saida>=hret));
-  if(conf&&!confirm(`Conflito com reserva de ${conf.responsavel} (${conf.hora_saida}–${conf.hora_retorno}). Enviar mesmo assim?`))return;
+  // Bloqueia se houver aprovado no período
+  const confAprov=reservas.find(r=>String(r.veiculo_id)===String(vId)&&r.status==='aprovado'&&r.data_saida===data&&!(r.hora_retorno<=hsai||r.hora_saida>=hret));
+  if(confAprov){toast('Horário bloqueado: já existe uma reserva aprovada neste período.','err');return}
   const{error}=await SB.from('reservas').insert([{veiculo_id:vId,departamento:dep,responsavel:resp,contato:tel,data_saida:data,data_retorno:data,hora_saida:hsai,hora_retorno:hret,destino:dst,observacoes:obs,status:'pendente',feedback:'',checklist:{},criado_em:new Date().toISOString()}]).select();
   if(error){toast('Erro ao enviar: '+(error.message||error.code),'err');console.error(error);return}
-  await loadData();renderAll();toast('✓ Solicitação enviada! Aguardando aprovação.','ok');limparRv();
+  await loadData();renderAll();checkConflictLive();toast('✓ Solicitação enviada! Aguardando aprovação.','ok');limparRv();
 }
 
 /* CALENDÁRIO */
@@ -816,9 +903,12 @@ function renderCal(){
   for(let d=1;d<=last;d++){
     const ds=`${calY}-${String(calM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isT=ds===TODAY;
+    const isPast=ds<TODAY;
     const dr=reservas.filter(r=>r.status!=='negado'&&r.data_saida<=ds&&r.data_retorno>=ds);
-    const pills=dr.slice(0,3).map(r=>{const v=veiculos.find(x=>x.id===r.veiculo_id);const c=r.status==='aprovado'?'cp-g':r.status==='pendente'?'cp-a':'cp-b';return`<span class="cpill ${c}">${v?.nome||'?'} ${r.hora_saida?r.hora_saida:''}</span>`;}).join('')+(dr.length>3?`<span class="cpill cp-b">+${dr.length-3}</span>`:'');
-    h+=`<div class="cal-day${isT?' today-d':''}" onclick="showCalDay('${ds}')"><span class="cdn">${d}</span>${pills}</div>`;
+    const pills=dr.slice(0,3).map(r=>{const v=veiculos.find(x=>x.id===r.veiculo_id);const cl=r.status==='aprovado'?'cp-g':r.status==='pendente'?'cp-a':'cp-b';return`<span class="cpill ${cl}">${v?.nome||'?'} ${r.hora_saida?r.hora_saida:''}</span>`;}).join('')+(dr.length>3?`<span class="cpill cp-b">+${dr.length-3}</span>`:'');
+    const cls='cal-day'+(isT?' today-d':isPast?' past-d':'');
+    const onclick=isPast?'':`onclick="showCalDay('${ds}')"`;
+    h+=`<div class="${cls}" ${onclick}><span class="cdn">${d}</span>${pills}</div>`;
   }
   const used=sd+last,rem=used%7?7-used%7:0;
   for(let i=1;i<=rem;i++)h+=`<div class="cal-day other-m"><span class="cdn">${i}</span></div>`;
@@ -932,7 +1022,7 @@ async function checkPwd(){
   }else{$('admin-msg').textContent='Senha incorreta.';$('admin-msg').style.display='block';$('admin-pwd').value='';}
 }
 function fecharAdmin(){adminLogado=false;$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';}
-function aTab(n){['aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem'].forEach(x=>{$('atb-'+x)?.classList.toggle('on',x===n);$('ap-'+x)?.classList.toggle('on',x===n);});if(n==='reservas')renderTodasRes();if(n==='veiculos')renderVeiculosAdm();if(n==='relatorio'){initRelFil();renderRel();}if(n==='checklist')renderCkAdm();if(n==='cpfs')renderCPFs();if(n==='lavagem'){renderLavAdm();renderLavStats();}}
+function aTab(n){['aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem'].forEach(x=>{$('atb-'+x)?.classList.toggle('on',x===n);$('ap-'+x)?.classList.toggle('on',x===n);});if(n==='reservas')renderTodasRes();if(n==='veiculos')renderVeiculosAdm();if(n==='relatorio'){initRelFil();renderRel();}if(n==='checklist')renderCkAdm();if(n==='cpfs')renderCPFs();if(n==='lavagem'){renderLavAdm();renderLavStats();}if(n==='depto'){renderDeptoReport();}}
 
 /* APROVAÇÕES */
 function renderAprov(){
@@ -970,7 +1060,20 @@ async function confAp(acao){
   const st=acao==='aprovar'?'aprovado':'negado',feed=$('ap-feed').value.trim();
   const{error}=await SB.from('reservas').update({status:st,feedback:feed}).eq('id',curApId);
   if(error){toast('Erro: '+(error.message),'err');return}
-  cov('ov-ap');await loadData();renderAprov();renderAll();toast(acao==='aprovar'?'Reserva aprovada!':'Reserva negada.',acao==='aprovar'?'ok':'info');
+  cov('ov-ap');await loadData();renderAprov();renderAll();
+  const res=reservas.find(x=>x.id===curApId);
+  if(res){
+    const solUser=cpfs.find(u=>u.nome===res.responsavel);
+    const tel=solUser?.telefone?solUser.telefone.replace(/\D/g,''):'';
+    const status=acao==='aprovar'?'APROVADA ✅':'NEGADA ❌';
+    const v=veiculos.find(x=>x.id===res.veiculo_id);
+    const msg=encodeURIComponent(`Olá ${res.responsavel.split(' ')[0]}! Sua reserva do ${v?.nome||'veículo'} para ${fmt(res.data_saida)} (${res.hora_saida}–${res.hora_retorno}) foi ${status}.${res.feedback?' Obs: '+res.feedback:''} — Frota Institucional`);
+    if(tel){
+      const link=`https://wa.me/55${tel}?text=${msg}`;
+      setTimeout(()=>{if(confirm('Deseja notificar o solicitante via WhatsApp?'))window.open(link,'_blank');},300);
+    }
+  }
+  toast(acao==='aprovar'?'Reserva aprovada!':'Reserva negada.',acao==='aprovar'?'ok':'info');
 }
 function abrirEditRes(id){
   const r=reservas.find(x=>x.id===id);if(!r)return;
@@ -1107,17 +1210,17 @@ function renderCkAdm(){
 function renderCPFs(){
   const el=$('cpf-list-wrap');
   if(!cpfs.length){el.innerHTML='<div class="empty"><i class="ti ti-id-badge-2"></i><h4>Nenhum CPF cadastrado</h4><p>Cadastre os motoristas autorizados</p></div>';return}
-  el.innerHTML=cpfs.map(c=>`<div class="cpf-row"><div><div class="cpf-num">${c.cpf}</div><div class="cpf-nome">${c.nome} ${c.departamento?'· '+c.departamento:''} ${c.data_assinatura?'· Assinou em '+fmt(c.data_assinatura):''}</div></div><div style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" onclick="editarCPF(${c.id})"><i class="ti ti-edit"></i></button><button class="btn btn-danger btn-sm" onclick="delCPF(${c.id})"><i class="ti ti-trash"></i></button></div></div>`).join('');
+  el.innerHTML=cpfs.map(c=>`<div class="cpf-row"><div><div class="cpf-num">${c.cpf}</div><div class="cpf-nome">${c.nome} ${c.departamento?'· '+c.departamento:''} ${c.telefone?'· <i class="ti ti-brand-whatsapp" style="color:#25D366"></i> '+c.telefone:''} ${c.data_assinatura?'· Assinou em '+fmt(c.data_assinatura):''}</div></div><div style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" onclick="editarCPF(${c.id})"><i class="ti ti-edit"></i></button><button class="btn btn-danger btn-sm" onclick="delCPF(${c.id})"><i class="ti ti-trash"></i></button></div></div>`).join('');
 }
-function abrirCPFModal(){$('cpf-modal-tit').textContent='Cadastrar CPF autorizado';$('cpf-f-id').value='';$('cpf-f-num').value='';$('cpf-f-nome').value='';$('cpf-f-dep').value='';$('cpf-f-data').value=TODAY;$('cpf-f-obs').value='';ov('ov-cpf');}
-function editarCPF(id){const c=cpfs.find(x=>x.id===id);$('cpf-modal-tit').textContent='Editar CPF';$('cpf-f-id').value=id;$('cpf-f-num').value=c.cpf;$('cpf-f-nome').value=c.nome;$('cpf-f-dep').value=c.departamento||'';$('cpf-f-data').value=c.data_assinatura||'';$('cpf-f-obs').value=c.observacoes||'';ov('ov-cpf');}
+function abrirCPFModal(){$('cpf-modal-tit').textContent='Cadastrar CPF autorizado';$('cpf-f-id').value='';$('cpf-f-num').value='';$('cpf-f-nome').value='';$('cpf-f-dep').value='';$('cpf-f-tel').value='';$('cpf-f-data').value=TODAY;$('cpf-f-obs').value='';ov('ov-cpf');}
+function editarCPF(id){const c=cpfs.find(x=>x.id===id);$('cpf-modal-tit').textContent='Editar CPF';$('cpf-f-id').value=id;$('cpf-f-num').value=c.cpf;$('cpf-f-nome').value=c.nome;$('cpf-f-dep').value=c.departamento||'';$('cpf-f-tel').value=c.telefone||'';$('cpf-f-data').value=c.data_assinatura||'';$('cpf-f-obs').value=c.observacoes||'';ov('ov-cpf');}
 async function salvarCPF(){
   const id=$('cpf-f-id').value;
   const cpfNum=$('cpf-f-num').value.trim();
   const nome=$('cpf-f-nome').value.trim();
   if(!cpfNum||!nome){toast('CPF e nome são obrigatórios.','err');return}
   if(!validCPF(cpfNum)){toast('CPF inválido.','err');return}
-  const data={cpf:cpfNum,nome,departamento:$('cpf-f-dep').value.trim(),data_assinatura:$('cpf-f-data').value||null,observacoes:$('cpf-f-obs').value.trim()};
+  const data={cpf:cpfNum,nome,departamento:$('cpf-f-dep').value.trim(),telefone:$('cpf-f-tel').value.trim()||null,data_assinatura:$('cpf-f-data').value||null,observacoes:$('cpf-f-obs').value.trim()};
   const{error}=id?await SB.from('cpfs_autorizados').update(data).eq('id',id):await SB.from('cpfs_autorizados').insert([data]).select();
   if(error){toast('Erro: '+(error.message||error.code),'err');console.error(error);return}
   cov('ov-cpf');await loadData();renderCPFs();toast(id?'CPF atualizado!':'CPF cadastrado!','ok');
@@ -1128,6 +1231,130 @@ async function delCPF(id){const c=cpfs.find(x=>x.id===id);if(!confirm(`Remover C
 function expCSV(vid){const v=veiculos.find(x=>x.id==vid);const rows=reservas.filter(r=>r.veiculo_id==vid).map(r=>`${r.id},"${v?.nome}","${v?.placa}","${r.departamento}","${r.responsavel}","${fmt(r.data_saida)}","${r.hora_saida||''}","${r.hora_retorno||''}","${r.destino}","${r.status}"`);dl(['ID,Veiculo,Placa,Departamento,Responsavel,Data,HoraSaida,HoraRetorno,Destino,Status',...rows].join('\n'),`relatorio_${v?.nome?.replace(/ /g,'_')}.csv`,'text/csv');}
 function expTXT(vid){const v=veiculos.find(x=>x.id==vid);let t=`RELATÓRIO — ${v?.nome} (${v?.placa})\n${'='.repeat(48)}\n`;reservas.filter(r=>r.veiculo_id==vid).forEach(r=>{t+=`${fmt(r.data_saida)} ${r.hora_saida||''}→${r.hora_retorno||''} | ${r.responsavel} | ${r.destino} | ${r.status}\n`;});dl(t,`relatorio_${v?.nome?.replace(/ /g,'_')}.txt`,'text/plain');}
 function dl(c,n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();}
+
+
+/* ============================================================
+   STATUS DO VEÍCULO NO FORMULÁRIO
+============================================================ */
+function updateVeiculoStatus(){
+  const vId=$('rv-vei').value;
+  const el=$('rv-vei-status');
+  if(!vId){el.style.display='none';return;}
+  const v=veiculos.find(x=>String(x.id)===String(vId));
+  if(!v){el.style.display='none';return;}
+  const s=vSt(v);
+  const cfg={
+    'Disponível':{cls:'vst-ok',ic:'ti-circle-check',txt:'Disponível agora'},
+    'Em uso':{cls:'vst-uso',ic:'ti-car',txt:'Em uso no momento'},
+    'Reservado':{cls:'vst-res',ic:'ti-calendar-event',txt:'Possui reserva futura'},
+    'Manutenção':{cls:'vst-mnt',ic:'ti-tool',txt:'Em manutenção'}
+  };
+  const info=cfg[s.l]||cfg['Disponível'];
+  el.className='';el.id='rv-vei-status';
+  el.classList.add(info.cls);
+  el.style.display='flex';
+  el.innerHTML=`<i class="ti ${info.ic}"></i> ${info.txt}`;
+}
+
+/* ============================================================
+   MINHAS RESERVAS
+============================================================ */
+function renderMinhasRes(){
+  const sec=$('minhas-res-sec');
+  const el=$('minhas-res-list');
+  if(!currentUser||!el){if(sec)sec.style.display='none';return;}
+  sec.style.display='block';
+  const fil=$('my-res-fil')?.value||'';
+  let list=reservas.filter(r=>r.responsavel===currentUser.nome);
+  if(fil)list=list.filter(r=>r.status===fil);
+  list.sort((a,b)=>b.data_saida.localeCompare(a.data_saida));
+  if(!list.length){el.innerHTML='<div class="empty"><i class="ti ti-calendar-off"></i><h4>Nenhuma reserva encontrada</h4></div>';return;}
+  el.innerHTML=list.map(r=>{
+    const v=veiculos.find(x=>x.id===r.veiculo_id);
+    const canCancel=r.status==='pendente';
+    const badgeMap={pendente:'b-pend',aprovado:'b-aprov',negado:'b-neg',concluido:'b-conc'};
+    const labelMap={pendente:'Pendente',aprovado:'Aprovado',negado:'Negado',concluido:'Concluído'};
+    return`<div class="my-res-card">
+      <div class="my-res-card-top">
+        <div>
+          <div class="my-res-vname"><i class="ti ti-car" style="color:var(--blue3)"></i> ${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></div>
+          <div class="my-res-meta">${fmt(r.data_saida)} · ${r.hora_saida||''}→${r.hora_retorno||''} · ${r.destino}</div>
+        </div>
+        <span class="badge ${badgeMap[r.status]||'b-pend'}">${labelMap[r.status]||r.status}</span>
+      </div>
+      ${r.feedback?`<div style="font-size:12px;color:var(--gray-500);margin-top:5px;padding:6px 9px;background:var(--gray-50);border-radius:6px"><i class="ti ti-message"></i> ${r.feedback}</div>`:''}
+      ${canCancel?`<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn btn-danger btn-sm" onclick="cancelarMinhaRes(${r.id})"><i class="ti ti-x"></i> Cancelar solicitação</button></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function cancelarMinhaRes(id){
+  if(!confirm('Cancelar esta solicitação de reserva?'))return;
+  const{error}=await SB.from('reservas').delete().eq('id',id);
+  if(error){toast('Erro ao cancelar.','err');return;}
+  await loadData();renderAll();toast('Solicitação cancelada.','info');
+}
+
+/* ============================================================
+   ALERTA DE MANUTENÇÃO POR KM
+============================================================ */
+function checkKmAlerts(){
+  const el=$('km-alerts-bar');
+  if(!el)return;
+  const alertas=veiculos.filter(v=>{
+    if(!v.proxima_troca_oleo_km||!v.km_atual)return false;
+    return v.km_atual>=(v.proxima_troca_oleo_km-3000);
+  });
+  if(!alertas.length){el.style.display='none';return;}
+  el.style.display='block';
+  el.innerHTML=alertas.map(v=>{
+    const diff=v.proxima_troca_oleo_km-v.km_atual;
+    const danger=diff<=0;
+    return`<div class="km-alert-bar${danger?' danger':''}">
+      <i class="ti ${danger?'ti-alert-octagon':'ti-alert-triangle'}" style="flex-shrink:0;margin-top:1px"></i>
+      <span><strong>${v.nome}</strong> — ${danger?`Troca de óleo <strong>atrasada</strong> (${Math.abs(diff).toLocaleString('pt-BR')} km acima do limite)`:`Troca de óleo em <strong>${diff.toLocaleString('pt-BR')} km</strong> (atual: ${v.km_atual.toLocaleString('pt-BR')} km / limite: ${v.proxima_troca_oleo_km.toLocaleString('pt-BR')} km)`}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   RELATÓRIO POR DEPARTAMENTO
+============================================================ */
+function renderDeptoReport(){
+  const el=$('depto-body');
+  if(!el)return;
+  const total=reservas.filter(r=>r.status!=='negado').length||1;
+  const deptos={};
+  reservas.filter(r=>r.status!=='negado').forEach(r=>{
+    const d=r.departamento||'Sem departamento';
+    if(!deptos[d])deptos[d]={total:0,aprovado:0,pendente:0,concluido:0};
+    deptos[d].total++;
+    deptos[d][r.status]=(deptos[d][r.status]||0)+1;
+  });
+  const sorted=Object.entries(deptos).sort((a,b)=>b[1].total-a[1].total);
+  if(!sorted.length){el.innerHTML='<div class="empty"><i class="ti ti-chart-pie"></i><h4>Sem dados</h4></div>';return;}
+  const maxVal=sorted[0][1].total;
+  el.innerHTML=`<div style="font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Uso por Departamento</div>`+
+  sorted.map(([dep,d])=>`
+    <div class="depto-bar-wrap">
+      <div class="depto-bar-label"><span>${dep}</span><span style="color:var(--gray-400)">${d.total} reserva${d.total!==1?'s':''} &nbsp;·&nbsp; ✅${d.aprovado||0} ⏳${d.pendente||0} 🏁${d.concluido||0}</span></div>
+      <div class="depto-bar-bg"><div class="depto-bar-fill" style="width:${Math.round((d.total/maxVal)*100)}%"></div></div>
+    </div>`).join('')+
+  `<div style="margin-top:18px;font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px">Veículos mais solicitados</div>`+
+  (()=>{
+    const vCount={};
+    reservas.filter(r=>r.status!=='negado').forEach(r=>{vCount[r.veiculo_id]=(vCount[r.veiculo_id]||0)+1;});
+    const mv=Object.entries(vCount).sort((a,b)=>b[1]-a[1]);
+    const mvMax=mv[0]?.[1]||1;
+    return mv.map(([vid,cnt])=>{
+      const v=veiculos.find(x=>String(x.id)===String(vid));
+      return`<div class="depto-bar-wrap">
+        <div class="depto-bar-label"><span>${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></span><span style="color:var(--gray-400)">${cnt} uso${cnt!==1?'s':''}</span></div>
+        <div class="depto-bar-bg"><div class="depto-bar-fill" style="width:${Math.round((cnt/mvMax)*100)}%;background:linear-gradient(90deg,var(--green2),var(--green))"></div></div>
+      </div>`;
+    }).join('');
+  })();
+}
 
 /* ============================================================
    LAVAGEM
