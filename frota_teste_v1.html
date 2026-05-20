@@ -761,10 +761,33 @@ window.addEventListener('DOMContentLoaded',async()=>{
   }finally{
     clearTimeout(loadTimeout);
   }
-  $('s-load').classList.remove('on');
-  $('s-login').classList.add('on');
   const y=new Date().getFullYear();
   $('rel-de').value=`${y}-01-01`;$('rel-ate').value=`${y}-12-31`;
+
+  // Restaurar sessão salva
+  const savedCPF=localStorage.getItem('frota_cpf');
+  if(savedCPF){
+    const found=cpfs.find(u=>cleanCPF(u.cpf)===savedCPF);
+    if(found){
+      currentUser=found;
+      aplicarSessao(found);
+      // Restaurar admin se estava ativo
+      if(localStorage.getItem('frota_admin')==='1'){
+        adminLogado=true;
+        $('admin-panel').style.display='block';
+        $('admin-login-wrap').style.display='none';
+        $('admin-tabs-wrap').style.display='block';
+        $('admin-btn').classList.add('admin-active');
+        $('admin-lbl').textContent='Admin ativo';
+        renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
+        loadLavagens().then(()=>{renderLavAdm();initLavSec();});
+      }
+      return;
+    }
+  }
+  // Sem sessão salva → mostra login
+  $('s-load').classList.remove('on');
+  $('s-login').classList.add('on');
 });
 
 async function loadData(){
@@ -796,29 +819,43 @@ async function doLoginCPF(){
     return;
   }
   currentUser=found;
+  localStorage.setItem('frota_cpf', cleanCPF(found.cpf));
+  aplicarSessao(found);
+}
+
+function aplicarSessao(found){
   $('app-av').textContent=found.nome.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
   $('app-nm').textContent=found.nome.split(' ')[0];
   $('hero-user-info').innerHTML=`<div class="hero-user"><i class="ti ti-user-check"></i> Bem-vindo, ${found.nome.split(' ')[0]} — ${found.departamento||'—'}</div>`;
   $('rv-resp').value=found.nome;
   $('rv-dep').value=found.departamento||'';
   $('rv-tel').value=found.telefone||'';
+  $('s-load').classList.remove('on');
   $('s-login').classList.remove('on');
   $('s-app').classList.add('on');
   renderAll();
   initCkVFil();
-  await loadLavagens();
-  initLavSec();
+  loadLavagens().then(()=>initLavSec());
   $('rv-data').value=TODAY;
   $('rv-hora-saida').value=NOW;
   $('rv-hora-ret').value=NOW;
 }
 
-function doLogout(){currentUser=null;adminLogado=false;$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';$('cpf-input').value='';$('login-msg').style.display='none';$('s-app').classList.remove('on');$('s-login').classList.add('on');}
+function doLogout(){currentUser=null;adminLogado=false;localStorage.removeItem('frota_cpf');localStorage.removeItem('frota_admin');$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';$('cpf-input').value='';$('login-msg').style.display='none';$('s-app').classList.remove('on');$('s-login').classList.add('on');}
 
 /* ============================================================
    RENDER ALL
 ============================================================ */
 function renderAll(){renderStats();renderVgrid();renderRvVeiculos();renderCal();renderMinhasRes();checkKmAlerts();}
+
+/* AUTO-REFRESH a cada 60s — atualiza dados sem recarregar a página */
+setInterval(async()=>{
+  if(!currentUser)return; // só atualiza se estiver logado
+  await loadData();
+  await loadLavagens();
+  renderAll();
+  if(adminLogado){renderAprov();renderTodasRes&&renderTodasRes();}
+}, 60000);
 
 /* STATUS */
 function vSt(v){
@@ -1014,14 +1051,16 @@ async function salvarRetorno(){
 function toggleAdmin(){if(adminLogado){fecharAdmin();return}$('admin-panel').style.display='block';$('admin-login-wrap').style.display='block';$('admin-tabs-wrap').style.display='none';$('admin-pwd').value='';$('admin-msg').style.display='none';$('admin-panel').scrollIntoView({behavior:'smooth',block:'start'});}
 async function checkPwd(){
   if($('admin-pwd').value===ADMIN_PWD){
-    adminLogado=true;$('admin-login-wrap').style.display='none';$('admin-tabs-wrap').style.display='block';
+    adminLogado=true;
+    localStorage.setItem('frota_admin','1');
+    $('admin-login-wrap').style.display='none';$('admin-tabs-wrap').style.display='block';
     $('admin-btn').classList.add('admin-active');$('admin-lbl').textContent='Admin ativo';
     renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
     await loadLavagens();renderLavAdm();initLavSec();
     toast('Modo administrador ativado.','ok');
   }else{$('admin-msg').textContent='Senha incorreta.';$('admin-msg').style.display='block';$('admin-pwd').value='';}
 }
-function fecharAdmin(){adminLogado=false;$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';}
+function fecharAdmin(){adminLogado=false;localStorage.removeItem('frota_admin');$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';}
 function aTab(n){['aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem'].forEach(x=>{$('atb-'+x)?.classList.toggle('on',x===n);$('ap-'+x)?.classList.toggle('on',x===n);});if(n==='reservas')renderTodasRes();if(n==='veiculos')renderVeiculosAdm();if(n==='relatorio'){initRelFil();renderRel();}if(n==='checklist')renderCkAdm();if(n==='cpfs')renderCPFs();if(n==='lavagem'){renderLavAdm();renderLavStats();}if(n==='depto'){renderDeptoReport();}}
 
 /* APROVAÇÕES */
@@ -1060,16 +1099,60 @@ async function confAp(acao){
   const st=acao==='aprovar'?'aprovado':'negado',feed=$('ap-feed').value.trim();
   const{error}=await SB.from('reservas').update({status:st,feedback:feed}).eq('id',curApId);
   if(error){toast('Erro: '+(error.message),'err');return}
-  cov('ov-ap');await loadData();renderAprov();renderAll();
+  cov('ov-ap');renderAprov();renderAll();
+  await loadData();
   const res=reservas.find(x=>x.id===curApId);
   if(res){
     const solUser=cpfs.find(u=>u.nome===res.responsavel);
     const tel=solUser?.telefone?solUser.telefone.replace(/\D/g,''):'';
-    const status=acao==='aprovar'?'APROVADA ✅':'NEGADA ❌';
     const v=veiculos.find(x=>x.id===res.veiculo_id);
-    const msg=encodeURIComponent(`Olá ${res.responsavel.split(' ')[0]}! Sua reserva do ${v?.nome||'veículo'} para ${fmt(res.data_saida)} (${res.hora_saida}–${res.hora_retorno}) foi ${status}.${res.feedback?' Obs: '+res.feedback:''} — Frota Institucional`);
+    const protocolo=String(res.id).padStart(5,'0');
+    const primeiroNome=res.responsavel.split(' ')[0];
+    const tratamento=res.responsavel.toLowerCase().includes(' ')?'Prezado(a) '+primeiroNome+',':'Prezado(a) '+primeiroNome+',';
+
+    let msg;
+    if(acao==='aprovar'){
+      msg=
+`✅ *RESERVA APROVADA — Frota Institucional*
+
+${tratamento}
+Informamos que sua solicitação de reserva de veículo foi *aprovada* com sucesso.
+
+🚗 *Veículo:* ${v?.nome||'—'}
+📅 *Data:* ${fmt(res.data_saida)}
+🕗 *Período:* ${res.hora_saida||'—'} às ${res.hora_retorno||'—'}
+🔖 *Protocolo:* #${protocolo}${res.feedback?'\n\n💬 *Observação:* '+res.feedback:''}
+
+⚠️ Lembre-se de realizar o *checklist de saída e retorno* diretamente no sistema no momento da utilização.
+
+Para acompanhar suas reservas, acesse:
+https://1brunomoreno.github.io/frota-teste/frota_teste_v1.html
+
+_Atenciosamente,_
+_Bruno Moreno — UniFECAF / Colégio SER_`;
+    } else {
+      msg=
+`❌ *RESERVA NÃO APROVADA — Frota Institucional*
+
+${tratamento}
+Informamos que sua solicitação de reserva não pôde ser aprovada neste momento.
+
+🚗 *Veículo:* ${v?.nome||'—'}
+📅 *Data:* ${fmt(res.data_saida)}
+🕗 *Período:* ${res.hora_saida||'—'} às ${res.hora_retorno||'—'}
+🔖 *Protocolo:* #${protocolo}${res.feedback?'\n\n📋 *Motivo:* '+res.feedback:''}
+
+Caso necessário, realize uma nova solicitação para outro horário ou veículo disponível.
+
+Para acompanhar suas reservas, acesse:
+https://1brunomoreno.github.io/frota-teste/frota_teste_v1.html
+
+_Atenciosamente,_
+_Bruno Moreno — UniFECAF / Colégio SER_`;
+    }
+
     if(tel){
-      const link=`https://wa.me/55${tel}?text=${msg}`;
+      const link=`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`;
       setTimeout(()=>{if(confirm('Deseja notificar o solicitante via WhatsApp?'))window.open(link,'_blank');},300);
     }
   }
