@@ -694,7 +694,19 @@ window.addEventListener('DOMContentLoaded',async()=>{
     return;
   }
   SB=supabase.createClient(SB_URL,SB_KEY);
-  await loadData();
+  // Timeout de segurança: se loadData() travar, sai do loading após 8s
+  const loadTimeout = setTimeout(()=>{
+    $('s-load').classList.remove('on');
+    $('s-login').classList.add('on');
+    console.warn('Timeout: Supabase demorou demais ou está offline.');
+  }, 8000);
+  try{
+    await loadData();
+  }catch(e){
+    console.error('Erro ao carregar dados:',e);
+  }finally{
+    clearTimeout(loadTimeout);
+  }
   $('s-load').classList.remove('on');
   $('s-login').classList.add('on');
   const y=new Date().getFullYear();
