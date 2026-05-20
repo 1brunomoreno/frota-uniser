@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Frota Institucional — TESTE</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+/* ============================================================
+   LAVAGEM
+============================================================ */
+const CPF_FACILITIES = '358.595.538-03';
+let lavagens = [];
+
+async function loadLavagens(){
+  try{
+    const {data,error} = await SB.from('lavagens').select('*').order('data_agendada', {ascending:false});
+    if(error) console.error('loadLavagens:', error);
+    lavagens = data || [];
+  }catch(e){console.error(e);}
+}
+
+async function loadDataFull(){
+  await Promise.all([loadData(), loadLavagens()]);
+}
+
+function initLavSec(){
+  const isFac = currentUser && cleanCPF(currentUser.cpf) === cleanCPF(CPF_FACILITIES);
+  const isAdmUser = adminLogado;
+  $('lav-sec').style.display = (isFac || isAdmUser) ? 'block' : 'none';
+  if(isFac || isAdmUser){
+    const s = $('lv-vei');
+    if(s && s.options.length <= 1){
+      s.innerHTML = '<option value="">Selecione o veículo</option>';
+      veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome+' ('+v.placa+')';s.appendChild(o);});
+    }
+    $('lv-data').value = TODAY;
+    $('lv-hora').value = NOW;
+  }
+}
+
+function limparLav(){
+  ['lv-obs'].forEach(id=>$(id).value='');
+  $('lv-data').value=TODAY;$('lv-hora').value=NOW;
+}
+
+async function agendarLavagem(){
+  const vid = $('lv-vei').value;
+  const data = $('lv-data').value;
+  const hora = $('lv-hora').value;
+  const tipo = $('lv-tipo').value;
+  const obs  = $('lv-obs').value.trim();
+  if(!vid||!data||!hora){toast('Selecione veículo, data e horário.','err');return}
+  const v = veiculos.find(x=>x.id==vid);
+  const {error} = await SB.from('lavagens').insert([{
+    veiculo_id: vid,
+    agendado_por: currentUser?.nome || '—',
+    agendado_cpf: currentUser?.cpf || '—',
+    data_agendada: data,
+    hora_agendada: hora,
+    tipo_lavagem: tipo,
+    observacoes: obs,
+    status: 'pendente',
+    criado_em: new Date().toISOString()
+  }]).select();
+  if(error){toast('Erro: '+(error.message||error.code),'err');console.error(error);return}
+  await loadLavagens();
+  toast('✓ Lavagem agendada! O administrador irá confirmar após a conclusão.','ok');
+  limparLav();
+  if(adminLogado) renderLavAdm();
+}
+
+/* ADMIN: lista lavagens */
+function renderLavAdm(){
+  const fv=$('lavf-vei')?.value, fs=$('lavf-st')?.value;
+  if(!$('lavf-vei').options.length||$('lavf-vei').options.length===1)
+    veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome;$('lavf-vei').appendChild(o);});
+  let list=[...lavagens];
+  if(fv)list=list.filter(l=>l.veiculo_id==fv);
+  if(fs)list=list.filter(l=>l.status===fs);
+  const el=$('lav-adm-list');
+  if(!list.length){el.innerHTML='<div class="empty"><i class="ti ti-droplet-off"></i><h4>Nenhuma lavagem</h4></div>';return}
+  el.innerHTML=list.map(l=>{
+    const v=veiculos.find(x=>x.id===l.veiculo_id);
+    const hist=lavagens.filter(x=>x.veiculo_id===l.veiculo_id&&x.status==='confirmado');
+    const tipoLabel={simples:'Simples',completa:'Completa',polimento:'Polimento',higienizacao:'Higienização'};
+    return`<div class="lav-card">
+      <div class="lav-top">
+        <div>
+          <div class="lav-vname"><i class="ti ti-droplet" style="color:#0EA5E9"></i> ${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></div>
+          <div class="lav-vsub">${fmt(l.data_agendada)} às ${l.hora_agendada} · ${tipoLabel[l.tipo_lavagem]||l.tipo_lavagem} · Agendado por: ${l.agendado_por}</div>
+        </div>
+        <span class="lav-badge ${l.status==='confirmado'?'lav-conf':'lav-pend'}">${l.status==='confirmado'?'✅ Confirmado':'⏳ Pendente'}</span>
+      </div>
+      ${l.status==='pendente'?`<div class="lav-body">
+        ${l.observacoes?`<div style="font-size:12px;color:var(--gray-500);margin-bottom:10px"><i class="ti ti-notes"></i> ${l.observacoes}</div>`:''}
+        <div style="display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn btn-danger btn-sm" onclick="delLavagem(${l.id})"><i class="ti ti-trash"></i>Cancelar</button>
+          <button class="btn btn-g btn-sm" onclick="abrirConfLav(${l.id})"><i class="ti ti-check"></i>Confirmar lavagem</button>
+        </div>
+      </div>`:''}
+      ${l.status==='confirmado'?`<div class="lav-body" style="background:var(--green-l)">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px">
+          <div><span style="color:var(--gray-400)">Concluída em:</span><br><strong>${fmt(l.data_confirmada)} ${l.hora_confirmada||''}</strong></div>
+          <div><span style="color:var(--gray-400)">Realizada por:</span><br><strong>${l.confirmado_por||'—'}</strong></div>
+          <div><span style="color:var(--gray-400)">Total do veículo:</span><br><strong>${hist.length} lavagem${hist.length!==1?'s':''}</strong></div>
+        </div>
+        ${l.obs_confirmacao?`<div style="font-size:12px;color:var(--green2);margin-top:8px"><i class="ti ti-notes"></i> ${l.obs_confirmacao}</div>`:''}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function abrirConfLav(id){
+  const l=lavagens.find(x=>x.id===id);
+  const v=veiculos.find(x=>x.id===l.veiculo_id);
+  $('lc-id').value=id;
+  $('lc-vei').value=(v?.nome||'?')+' ('+( v?.placa||'')+')';
+  $('lc-data').value=TODAY;$('lc-hora').value=NOW;
+  $('lc-resp').value='';$('lc-obs').value='';
+  ov('ov-lav-conf');
+}
+
+async function confirmarLavagem(){
+  const id=parseInt($('lc-id').value);
+  const{error}=await SB.from('lavagens').update({
+    status:'confirmado',
+    data_confirmada:$('lc-data').value,
+    hora_confirmada:$('lc-hora').value,
+    confirmado_por:$('lc-resp').value.trim(),
+    obs_confirmacao:$('lc-obs').value.trim()
+  }).eq('id',id);
+  if(error){toast('Erro: '+(error.message),'err');return}
+  cov('ov-lav-conf');await loadLavagens();renderLavAdm();renderLavStats();toast('✓ Lavagem confirmada!','ok');
+}
+
+async function delLavagem(id){
+  if(!confirm('Cancelar este agendamento de lavagem?'))return;
+  const{error}=await SB.from('lavagens').delete().eq('id',id);
+  if(error){toast('Erro','err');return}
+  await loadLavagens();renderLavAdm();toast('Agendamento cancelado.','info');
+}
+
+/* Painel de estatísticas por veículo no relatório */
+function renderLavStats(){
+  const el=document.getElementById('lav-stats-panel');
+  if(!el)return;
+  el.innerHTML=veiculos.map(v=>{
+    const hist=lavagens.filter(l=>l.veiculo_id===v.id&&l.status==='confirmado');
+    const ultima=hist[0];
+    return`<div class="lav-stat-box">
+      <div style="font-family:var(--fh);font-size:13px;font-weight:600;color:var(--gray-900);margin-bottom:4px">${v.nome}</div>
+      <div class="lav-count-badge">${hist.length}</div>
+      <div style="font-size:10px;color:var(--gray-400);margin-top:2px">lavagens</div>
+      ${ultima?`<div style="font-size:11px;color:var(--gray-500);margin-top:5px">Última: ${fmt(ultima.data_confirmada)}</div>`:'<div style="font-size:11px;color:var(--gray-300);margin-top:5px">Nenhuma ainda</div>'}
+    </div>`;
+  }).join('');
+}
+
+</script>
+<style>
+:root{
+  --blue:#003E7E;--blue2:#002655;--blue3:#1565C0;--blue-l:#E3EDF8;--blue-xl:#F0F5FC;
+  --green:#00A651;--green2:#007A3A;--green-l:#E3F5EC;
+  --gray-50:#F6F7FA;--gray-100:#EDEEF3;--gray-200:#D9DCE5;--gray-300:#B8BECE;
+  --gray-400:#8990A3;--gray-500:#636A7E;--gray-700:#353C52;--gray-900:#181D2E;
+  --danger:#C0392B;--danger-l:#FCECEA;--warn:#D97706;--warn-l:#FEF6E4;
+  --white:#fff;--fh:'Sora',sans-serif;--fb:'DM Sans',sans-serif;
+  --r6:6px;--r10:10px;--r14:14px;--r18:18px;--r24:24px;
+  --sh0:0 1px 3px rgba(0,40,110,.07);--sh1:0 4px 16px rgba(0,40,110,.11);--sh2:0 10px 40px rgba(0,40,110,.16);
+  --t:.18s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh;font-family:var(--fb);background:var(--gray-50);color:var(--gray-900);font-size:15px;line-height:1.6}
+button{cursor:pointer;font-family:var(--fb)}
+input,select,textarea{font-family:var(--fb)}
+.scr{display:none;min-height:100vh;flex-direction:column}
+.scr.on{display:flex}
+
+/* LOADING */
+#s-load{background:var(--blue2);align-items:center;justify-content:center;gap:18px}
+.load-logos{display:flex;align-items:center;gap:14px}
+.load-logos img{height:34px;object-fit:contain;filter:brightness(0) invert(1)}
+.load-sep{width:1px;height:28px;background:rgba(255,255,255,.25)}
+.spin{width:36px;height:36px;border:3px solid rgba(255,255,255,.18);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.load-t{color:rgba(255,255,255,.6);font-family:var(--fh);font-size:13px}
+
+/* LOGIN CPF */
+#s-login{background:linear-gradient(135deg,var(--blue2) 0%,var(--blue) 55%,#005B30 100%);align-items:center;justify-content:center;padding:20px}
+.login-card{background:#fff;border-radius:var(--r24);box-shadow:var(--sh2);width:100%;max-width:400px;overflow:hidden}
+.login-top{background:var(--blue);padding:28px 24px 22px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.login-logos{display:flex;align-items:center;gap:14px;background:#fff;padding:10px 20px;border-radius:var(--r10)}
+.login-logos img{height:32px;object-fit:contain}
+.login-logo-sep{width:1px;height:24px;background:var(--gray-200)}
+.login-title{color:#fff;font-family:var(--fh);font-size:15px;font-weight:600;text-align:center}
+.login-sub{color:rgba(255,255,255,.65);font-size:12px;text-align:center;margin-top:-8px}
+.login-body{padding:26px 24px 28px}
+.login-icon-wrap{display:flex;justify-content:center;margin-bottom:16px}
+.login-icon{width:60px;height:60px;background:var(--blue-xl);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:28px}
+.login-label{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px}
+.login-input-wrap{position:relative;margin-bottom:14px}
+.login-input{width:100%;padding:12px 14px;border:2px solid var(--gray-200);border-radius:var(--r10);font-size:16px;text-align:center;letter-spacing:2px;font-family:var(--fh);font-weight:600;color:var(--gray-900);transition:var(--t)}
+.login-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,62,126,.1)}
+.login-input::placeholder{letter-spacing:0;font-weight:400;color:var(--gray-300);font-size:14px}
+.login-btn{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:var(--r10);font-size:14px;font-weight:700;font-family:var(--fh);display:flex;align-items:center;justify-content:center;gap:8px;transition:var(--t)}
+.login-btn:hover{background:var(--blue2)}
+.login-msg{padding:11px 14px;border-radius:var(--r10);font-size:13px;margin-bottom:14px;display:none;align-items:flex-start;gap:9px;border:1px solid;line-height:1.5}
+.login-msg.err{background:var(--danger-l);border-color:#f5c0bc;color:var(--danger);display:flex}
+.login-msg.ok{background:var(--green-l);border-color:#a7f3d0;color:var(--green2);display:flex}
+.login-info{background:var(--blue-xl);border:1px solid var(--blue-l);border-radius:var(--r10);padding:10px 13px;font-size:12px;color:var(--blue3);display:flex;gap:7px;align-items:flex-start;margin-top:14px;line-height:1.5}
+
+/* TOPBAR */
+.topbar{background:var(--blue);height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;box-shadow:0 2px 14px rgba(0,0,0,.2);position:sticky;top:0;z-index:400;flex-shrink:0}
+.tb-brand{display:flex;align-items:center;gap:12px}
+.tb-logo-pill{display:flex;align-items:center;gap:10px;background:#fff;padding:5px 14px;border-radius:8px}
+.tb-logo-pill img{height:22px;object-fit:contain}
+.tb-logo-inner-sep{width:1px;height:18px;background:var(--gray-200)}
+.tb-divider{width:1px;height:24px;background:rgba(255,255,255,.25)}
+.tb-sys{color:rgba(255,255,255,.75);font-family:var(--fh);font-size:12px;font-weight:500;letter-spacing:.3px}
+.tb-right{display:flex;align-items:center;gap:8px}
+.user-chip{display:flex;align-items:center;gap:7px;padding:4px 12px 4px 6px;background:rgba(255,255,255,.1);border-radius:20px;color:#fff;font-size:12px;border:1px solid rgba(255,255,255,.2)}
+.u-av{width:26px;height:26px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;font-family:var(--fh)}
+.admin-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;font-family:var(--fh);display:flex;align-items:center;gap:5px;transition:var(--t)}
+.admin-btn:hover{background:rgba(255,255,255,.22)}
+.admin-active{background:var(--green);border-color:var(--green)}
+.logout-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 10px;border-radius:var(--r6);font-size:11px;display:flex;align-items:center;gap:4px;transition:var(--t)}
+.logout-btn:hover{background:rgba(255,255,255,.2)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--blue2) 0%,var(--blue) 55%,#005B30 100%);padding:44px 24px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");pointer-events:none}
+.hero-logo-pill{display:flex;align-items:center;gap:16px;background:#fff;padding:10px 22px;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.15);display:inline-flex;margin-bottom:22px}
+.hero-logo-pill img{height:36px;object-fit:contain}
+.hero-logo-sep{width:1px;height:28px;background:var(--gray-200)}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.9);padding:4px 13px;border-radius:20px;font-size:11px;font-weight:600;font-family:var(--fh);margin-bottom:16px;letter-spacing:.4px}
+.hero-title{font-family:var(--fh);font-size:clamp(22px,5vw,36px);font-weight:800;color:#fff;line-height:1.2;margin-bottom:10px}
+.hero-title span{color:#4DD68A}
+.hero-sub{color:rgba(255,255,255,.7);font-size:14px;max-width:500px;margin:0 auto 24px}
+.hero-user{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);padding:6px 16px;border-radius:20px;color:#fff;font-size:13px;font-family:var(--fh);font-weight:500}
+.hero-stats{display:flex;align-items:center;justify-content:center;flex-wrap:wrap}
+.hstat{padding:10px 22px;text-align:center;border-right:1px solid rgba(255,255,255,.15)}
+.hstat:last-child{border-right:none}
+.hstat-n{font-family:var(--fh);font-size:22px;font-weight:800;color:#fff}
+.hstat-l{font-size:11px;color:rgba(255,255,255,.6);margin-top:1px}
+
+/* MAIN */
+.main{flex:1;max-width:1080px;margin:0 auto;width:100%;padding:24px 18px 60px}
+.stitle{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.9px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+
+/* CHIPS */
+.chips-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.chip{display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r10);padding:10px 16px;box-shadow:var(--sh0);font-size:13px;flex:1;min-width:110px}
+.chip-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.chip-n{font-family:var(--fh);font-size:18px;font-weight:700;display:block;line-height:1}
+.chip-l{font-size:11px;color:var(--gray-400);display:block;margin-top:1px}
+
+/* VEHICLE GRID */
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:26px}
+.vcard{background:#fff;border-radius:var(--r14);border:1.5px solid var(--gray-200);overflow:hidden;box-shadow:var(--sh0);transition:var(--t)}
+.vcard:hover{box-shadow:var(--sh1);transform:translateY(-1px)}
+.vcard-bar{height:3px}
+.vb-ok{background:var(--green)}.vb-uso{background:var(--blue3)}.vb-res{background:var(--warn)}.vb-mnt{background:var(--danger)}
+.vcard-body{padding:14px 16px}
+.vcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.vc-ic{width:38px;height:38px;border-radius:var(--r10);background:var(--blue-l);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:18px}
+.vc-name{font-family:var(--fh);font-size:13px;font-weight:600}
+.vc-model{font-size:11px;color:var(--gray-400);margin-top:2px}
+.vc-plate{font-family:monospace;font-size:11px;background:var(--gray-100);border:1px solid var(--gray-200);padding:2px 7px;border-radius:4px;color:var(--gray-700);display:inline-block;margin-bottom:8px}
+.vc-rows{font-size:11px;color:var(--gray-500);display:flex;flex-direction:column;gap:3px;padding-top:8px;border-top:1px solid var(--gray-100)}
+.vc-row{display:flex;gap:5px}.vc-row strong{color:var(--gray-800);font-weight:500;min-width:44px}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;font-family:var(--fh);white-space:nowrap}
+.b-ok{background:#D1FAE5;color:#065F46}.b-uso{background:#DBEAFE;color:#1E40AF}
+.b-res{background:#FEF3C7;color:#92400E}.b-mnt{background:#FEE2E2;color:#991B1B}
+.b-pend{background:#FEF3C7;color:#92400E}.b-aprov{background:#D1FAE5;color:#065F46}
+.b-neg{background:#FEE2E2;color:#991B1B}.b-conc{background:var(--gray-100);color:var(--gray-500)}
+
+/* FORM CARD */
+.form-card{background:#fff;border-radius:var(--r18);border:1.5px solid var(--gray-200);box-shadow:var(--sh1);overflow:hidden;margin-bottom:24px}
+.form-card-hdr{background:linear-gradient(120deg,var(--blue) 0%,var(--blue3) 100%);padding:18px 22px;display:flex;align-items:center;gap:11px}
+.form-card-hdr .ti{font-size:20px;color:rgba(255,255,255,.85)}
+.form-card-hdr h2{font-family:var(--fh);font-size:15px;font-weight:700;color:#fff}
+.form-card-hdr p{font-size:12px;color:rgba(255,255,255,.65);margin-top:2px}
+.form-card-body{padding:20px 22px}
+.fg{margin-bottom:13px}
+.flbl{font-size:11px;font-weight:700;color:var(--gray-600);font-family:var(--fh);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.fi{width:100%;padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--r10);font-size:13px;color:var(--gray-900);background:#fff;transition:var(--t);appearance:none}
+.fi:focus{outline:none;border-color:var(--blue3);box-shadow:0 0 0 3px rgba(0,62,126,.09)}
+.fi::placeholder{color:var(--gray-300)}
+select.fi{cursor:pointer}
+textarea.fi{resize:vertical;min-height:68px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+.form-footer{display:flex;gap:9px;justify-content:flex-end;padding-top:12px;border-top:1px solid var(--gray-100)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:var(--r10);font-size:13px;font-weight:600;font-family:var(--fh);border:none;transition:var(--t);white-space:nowrap}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue2)}
+.btn-g{background:var(--green);color:#fff}.btn-g:hover{background:var(--green2)}
+.btn-ghost{background:transparent;color:var(--gray-600);border:1.5px solid var(--gray-200)}.btn-ghost:hover{background:var(--gray-100)}
+.btn-danger{background:var(--danger-l);color:var(--danger);border:1px solid #f5c0bc}.btn-danger:hover{background:#f9d4d1}
+.btn-warn{background:var(--warn-l);color:var(--warn);border:1px solid #fde68a}
+.btn-sm{padding:4px 11px;font-size:11px}
+.btn-full{width:100%;justify-content:center;padding:11px}
+.btn-lg{padding:12px 26px;font-size:14px}
+
+/* CALENDAR */
+.cal-card{background:#fff;border-radius:var(--r18);border:1.5px solid var(--gray-200);box-shadow:var(--sh0);overflow:hidden;margin-bottom:24px}
+.cal-top{background:var(--blue);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.cal-top h3{font-family:var(--fh);font-size:14px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.cal-nav-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;border-bottom:1px solid var(--gray-100)}
+.cal-month-lbl{font-family:var(--fh);font-size:14px;font-weight:600}
+.cal-body{padding:10px 12px 14px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-dow{text-align:center;font-size:10px;font-weight:700;font-family:var(--fh);color:var(--gray-400);padding:3px 2px;letter-spacing:.3px}
+.cal-day{min-height:58px;padding:4px;border-radius:6px;border:1px solid transparent;background:#fafafa;cursor:pointer;transition:var(--t);overflow:hidden}
+.cal-day:hover{border-color:var(--blue3);background:var(--blue-xl)}
+.cal-day.other-m{opacity:.3;cursor:default}.cal-day.other-m:hover{border-color:transparent;background:#fafafa}
+.cal-day.today-d{border-color:var(--blue);background:var(--blue-xl)}
+.cdn{font-size:11px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:2px}
+.cal-day.today-d .cdn{color:var(--blue);font-weight:800}
+.cpill{display:block;font-size:9px;padding:1px 4px;border-radius:3px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.cp-g{background:#D1FAE5;color:#065F46}.cp-a{background:#FEF3C7;color:#92400E}.cp-b{background:#DBEAFE;color:#1E40AF}
+.cal-legend{display:flex;gap:12px;flex-wrap:wrap;padding:8px 16px 12px;border-top:1px solid var(--gray-100)}
+.cl-i{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-500)}
+.cl-d{width:7px;height:7px;border-radius:50%}
+.cal-detail{padding:0 12px 12px}
+
+/* ALERTS */
+.alert{padding:10px 14px;border-radius:var(--r10);font-size:13px;display:flex;align-items:flex-start;gap:9px;border:1px solid;margin-bottom:11px}
+.a-warn{background:#FFFBEB;border-color:#FDE68A;color:#92400E}
+.a-danger{background:#FEF2F2;border-color:#FECACA;color:#991B1B}
+.a-info{background:#EFF6FF;border-color:#BFDBFE;color:#1E40AF}
+.a-ok{background:#F0FDF4;border-color:#BBF7D0;color:#065F46}
+
+/* TOAST */
+#toasts{position:fixed;bottom:20px;right:18px;z-index:900;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--gray-900);color:#fff;padding:10px 15px;border-radius:var(--r14);font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;box-shadow:var(--sh2);animation:tup .2s ease;max-width:300px;pointer-events:all}
+.t-ok{background:#065F46;border-left:4px solid var(--green)}.t-err{background:#991B1B;border-left:4px solid var(--danger)}.t-info{background:var(--blue2);border-left:4px solid #60A5FA}
+@keyframes tup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* MODALS */
+.ov{position:fixed;inset:0;background:rgba(0,20,70,.45);z-index:700;display:none;align-items:flex-start;justify-content:center;padding:44px 12px 20px;backdrop-filter:blur(3px)}
+.ov.on{display:flex}
+.modal{background:#fff;border-radius:var(--r24);box-shadow:var(--sh2);width:100%;max-width:520px;display:flex;flex-direction:column;max-height:90vh;overflow:hidden}
+.modal.lg{max-width:660px}
+.mhdr{background:var(--blue);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.mhdr h3{color:#fff;font-family:var(--fh);font-size:14px;font-weight:600}
+.mbody{padding:18px 20px;overflow-y:auto;flex:1}
+.mftr{padding:12px 20px;border-top:1.5px solid var(--gray-100);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+.xbtn{background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;transition:var(--t);cursor:pointer}
+.xbtn:hover{background:rgba(255,255,255,.3)}
+
+/* ADMIN PANEL */
+.admin-panel{background:#fff;border-radius:var(--r18);border:2px solid var(--green);box-shadow:var(--sh1);overflow:hidden;margin-bottom:24px}
+.admin-panel-hdr{background:linear-gradient(120deg,var(--green2),var(--green));padding:14px 20px;display:flex;align-items:center;gap:10px}
+.admin-panel-hdr h2{font-family:var(--fh);font-size:14px;font-weight:700;color:#fff}
+.admin-tabs{display:flex;border-bottom:1.5px solid var(--gray-100);padding:0 16px;overflow-x:auto;scrollbar-width:none}
+.admin-tabs::-webkit-scrollbar{display:none}
+.atab{padding:10px 13px 8px;font-size:12px;font-weight:600;font-family:var(--fh);color:var(--gray-400);cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;transition:var(--t)}
+.atab:hover{color:var(--green);background:var(--green-l)}
+.atab.on{color:var(--green2);border-bottom-color:var(--green)}
+.admin-pane{display:none;padding:16px 18px}.admin-pane.on{display:block}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:var(--r10);border:1.5px solid var(--gray-200)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--gray-50);padding:9px 12px;text-align:left;font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);letter-spacing:.6px;text-transform:uppercase;border-bottom:1.5px solid var(--gray-200)}
+td{padding:10px 12px;border-bottom:1px solid var(--gray-100);color:var(--gray-700);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--gray-50)}
+.td-p{font-weight:600;color:var(--gray-900);font-family:var(--fh)}
+
+/* CHECKLIST */
+.ck-card{background:#fff;border-radius:var(--r14);border:1.5px solid var(--gray-200);overflow:hidden;box-shadow:var(--sh0);margin-bottom:10px}
+.ck-card-top{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ck-card-name{font-family:var(--fh);font-weight:600;font-size:13px}
+.ck-card-sub{font-size:11px;color:var(--gray-400);margin-top:2px}
+.ck-status{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;font-family:var(--fh);white-space:nowrap}
+.ck-aguard{background:#FEF3C7;color:#92400E}.ck-viagem{background:#DBEAFE;color:#1E40AF}.ck-conc{background:#D1FAE5;color:#065F46}
+.ck-body{border-top:1.5px solid var(--gray-100);padding:14px 16px;background:var(--gray-50)}
+.ck-section{font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:9px;display:flex;align-items:center;gap:5px}
+.ck-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.ck-field .ck-lbl{font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:2px}
+.ck-field .ck-val{font-size:13px;font-weight:500;color:var(--gray-900)}
+.ck-avaria{background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--r10);padding:8px 12px;font-size:12px;color:var(--danger);margin-bottom:10px;display:flex;gap:7px;align-items:flex-start}
+.ck-divider{height:1px;background:var(--gray-200);margin:12px 0}
+.ck-btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.ck-big-btn{flex:1;min-width:130px;padding:11px 14px;border-radius:var(--r10);font-size:13px;font-weight:700;font-family:var(--fh);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:var(--t)}
+.ck-saida-btn{background:var(--blue);color:#fff}.ck-saida-btn:hover{background:var(--blue2)}
+.ck-retorno-btn{background:var(--green);color:#fff}.ck-retorno-btn:hover{background:var(--green2)}
+.ck-km-badge{font-family:monospace;font-size:12px;font-weight:700;background:var(--green-l);color:var(--green2);padding:2px 9px;border-radius:20px;display:inline-block;margin-top:6px}
+.empty{text-align:center;padding:32px 16px;color:var(--gray-400)}
+.empty .ti{font-size:34px;display:block;margin-bottom:8px;color:var(--gray-300)}
+.empty h4{font-family:var(--fh);font-size:13px;color:var(--gray-600);margin-bottom:4px}
+
+/* CPF TABLE */
+.cpf-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--gray-100);font-size:13px}
+.cpf-row:last-child{border-bottom:none}
+.cpf-num{font-family:monospace;font-weight:600;color:var(--gray-900)}
+.cpf-nome{color:var(--gray-500);font-size:12px;margin-top:1px}
+
+/* PROGRESS BAR */
+.pb{height:5px;background:var(--gray-100);border-radius:3px;overflow:hidden;margin-top:4px}
+.pb-f{height:100%;border-radius:3px}
+
+/* TIMELINE */
+.tl{border-left:2px solid var(--gray-200);padding-left:14px;margin-left:4px}
+.tli{position:relative;padding-bottom:12px;font-size:12px}
+.tli:last-child{padding-bottom:0}
+.tld{width:9px;height:9px;border-radius:50%;position:absolute;left:-19px;top:3px;border:2px solid #fff}
+.tl-ok{background:var(--green)}.tl-w{background:var(--warn)}.tl-r{background:var(--danger)}
+
+/* RESPONSIVE */
+@media(max-width:640px){
+  .topbar{padding:0 12px;height:52px}
+  .tb-sys{display:none}
+  .main{padding:16px 10px 40px}
+  .hero{padding:32px 16px 36px}
+  .g2,.g3{grid-template-columns:1fr}
+  .vgrid{grid-template-columns:1fr}
+  .form-card-body{padding:16px}
+  .ov{padding:0;align-items:flex-end}
+  .modal{max-width:100%;border-radius:var(--r24) var(--r24) 0 0;align-self:flex-end}
+}
+
+/* ===== LAVAGEM ===== */
+.lav-card{background:#fff;border-radius:var(--r14);border:1.5px solid var(--gray-200);overflow:hidden;box-shadow:var(--sh0);margin-bottom:10px;transition:var(--t)}
+.lav-card:hover{box-shadow:var(--sh1)}
+.lav-top{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lav-vname{font-family:var(--fh);font-weight:600;font-size:13px;color:var(--gray-900)}
+.lav-vsub{font-size:11px;color:var(--gray-400);margin-top:2px}
+.lav-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;font-family:var(--fh);white-space:nowrap}
+.lav-pend{background:#FEF3C7;color:#92400E}
+.lav-conf{background:#D1FAE5;color:#065F46}
+.lav-body{border-top:1.5px solid var(--gray-100);padding:12px 16px;background:var(--gray-50)}
+.lav-info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.lav-field .lav-lbl{font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:2px}
+.lav-field .lav-val{font-size:13px;font-weight:500;color:var(--gray-900)}
+.lav-hist-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:12px}
+.lav-hist-item:last-child{border-bottom:none}
+.lav-count-badge{font-family:var(--fh);font-size:22px;font-weight:800;color:var(--blue)}
+.lav-stat-box{background:var(--gray-50);border-radius:var(--r10);padding:12px 14px;border:1.5px solid var(--gray-200);text-align:center}
+.lav-alert{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--r10);padding:10px 14px;font-size:13px;color:#1E40AF;display:flex;gap:9px;align-items:flex-start;margin-bottom:14px}
+.wash-btn{width:100%;padding:12px;background:linear-gradient(120deg,#0369A1,#0EA5E9);color:#fff;border:none;border-radius:var(--r10);font-size:14px;font-weight:700;font-family:var(--fh);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:var(--t)}
+.wash-btn:hover{background:linear-gradient(120deg,#075985,#0284C7)}
+.lav-section-hdr{font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+
+<!-- LOADING -->
+<div class="scr on" id="s-load">
+  <div class="load-logos">
+    <img id="ll1" alt="UniFECAF"><div class="load-sep"></div><img id="ll2" alt="Colégio SER">
+  </div>
+  <div class="spin"></div>
+  <div class="load-t">Verificando acesso…</div>
+</div>
+
+<!-- LOGIN CPF -->
+<div class="scr" id="s-login">
+  <div class="login-card">
+    <div class="login-top">
+      <div class="login-logos">
+        <img id="lg1" alt="UniFECAF"><div class="login-logo-sep"></div><img id="lg2" alt="Colégio SER">
+      </div>
+      <div class="login-title">Sistema de Gestão de Frota</div>
+      <div class="login-sub">Acesso restrito a motoristas autorizados</div>
+    </div>
+    <div class="login-body">
+      <div class="login-icon-wrap"><div class="login-icon"><i class="ti ti-id-badge-2"></i></div></div>
+      <label class="login-label">Informe seu CPF</label>
+      <div class="login-msg" id="login-msg"></div>
+      <input type="text" class="login-input" id="cpf-input" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)" onkeydown="if(event.key==='Enter')doLoginCPF()">
+      <div style="height:12px"></div>
+      <button class="login-btn" onclick="doLoginCPF()"><i class="ti ti-login"></i> Acessar sistema</button>
+      <div class="login-info">
+        <i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px"></i>
+        <span>O acesso é exclusivo para condutores que assinaram o <strong>Termo de Responsabilidade</strong>. Em caso de dúvidas, procure o setor de Recursos Humanos.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="scr" id="s-app">
+  <div class="topbar">
+    <div class="tb-brand">
+      <div class="tb-logo-pill">
+        <img id="tb1" alt="UniFECAF"><div class="tb-logo-inner-sep"></div><img id="tb2" alt="Colégio SER">
+      </div>
+      <div class="tb-divider"></div>
+      <span class="tb-sys">Gestão de Frota</span>
+    </div>
+    <div class="tb-right">
+      <div class="user-chip"><div class="u-av" id="app-av">?</div><span id="app-nm" style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span></div>
+      <button class="admin-btn" id="admin-btn" onclick="toggleAdmin()"><i class="ti ti-shield"></i><span id="admin-lbl">Admin</span></button>
+      <button class="logout-btn" onclick="doLogout()"><i class="ti ti-logout"></i></button>
+    </div>
+  </div>
+
+  <div class="hero" id="hero-sec">
+    <div style="display:flex;justify-content:center">
+      <div class="hero-logo-pill"><img id="h1" alt="UniFECAF"><div class="hero-logo-sep"></div><img id="h2" alt="Colégio SER"></div>
+    </div>
+    <div class="hero-tag"><i class="ti ti-car"></i> Sistema de Frota Institucional — AMBIENTE DE TESTES</div>
+    <h1 class="hero-title">Reserve seu veículo<br><span>de forma rápida e simples.</span></h1>
+    <p class="hero-sub">Solicite o uso de um veículo, consulte a agenda e acompanhe sua reserva.</p>
+    <div id="hero-user-info" style="margin-bottom:16px"></div>
+    <div class="hero-stats" id="hero-stats"></div>
+  </div>
+
+  <div class="main">
+    <!-- STATUS -->
+    <div id="status-sec">
+      <div class="stitle">Status da frota agora</div>
+      <div class="chips-bar" id="chips-bar"></div>
+      <div class="stitle">Veículos</div>
+      <div class="vgrid" id="vgrid"></div>
+    </div>
+
+    <!-- AGENDA (primeiro) -->
+    <div class="cal-card" id="cal-sec">
+      <div class="cal-top"><h3><i class="ti ti-calendar-month"></i> Agenda de Reservas</h3><i class="ti ti-eye" style="color:rgba(255,255,255,.6)"></i></div>
+      <div class="cal-nav-row">
+        <button class="btn btn-ghost btn-sm" onclick="calNav(-1)"><i class="ti ti-chevron-left"></i></button>
+        <span class="cal-month-lbl" id="cal-lbl"></span>
+        <button class="btn btn-ghost btn-sm" onclick="calNav(1)"><i class="ti ti-chevron-right"></i></button>
+      </div>
+      <div class="cal-body"><div class="cal-grid" id="cal-grid"></div></div>
+      <div class="cal-legend">
+        <div class="cl-i"><div class="cl-d" style="background:var(--green)"></div>Aprovado</div>
+        <div class="cl-i"><div class="cl-d" style="background:var(--warn)"></div>Pendente</div>
+        <div class="cl-i"><div class="cl-d" style="background:#1E40AF"></div>Concluído</div>
+      </div>
+      <div class="cal-detail" id="cal-detail"></div>
+    </div>
+
+    <!-- SOLICITAR RESERVA (segundo) -->
+    <div class="form-card" id="form-res">
+      <div class="form-card-hdr">
+        <i class="ti ti-calendar-plus"></i>
+        <div><h2>Solicitar Reserva</h2><p>Reserva por hora — preencha e envie para aprovação</p></div>
+      </div>
+      <div class="form-card-body">
+        <div class="g2">
+          <div class="fg"><label class="flbl">Veículo</label><select class="fi" id="rv-vei"></select></div>
+          <div class="fg"><label class="flbl">Departamento</label><input class="fi" id="rv-dep" placeholder="Seu departamento"></div>
+        </div>
+        <div class="g2">
+          <div class="fg"><label class="flbl">Responsável</label><input class="fi" id="rv-resp" readonly></div>
+          <div class="fg"><label class="flbl">Contato / Ramal</label><input class="fi" id="rv-tel" placeholder="(11) 99999-0000"></div>
+        </div>
+        <!-- Por hora -->
+        <div class="fg">
+          <label class="flbl">Data da utilização</label>
+          <input type="date" class="fi" id="rv-data">
+        </div>
+        <div class="g2">
+          <div class="fg"><label class="flbl">Hora de saída</label><input type="time" class="fi" id="rv-hora-saida"></div>
+          <div class="fg"><label class="flbl">Hora de retorno</label><input type="time" class="fi" id="rv-hora-ret"></div>
+        </div>
+        <div style="background:var(--blue-xl);border-radius:var(--r10);padding:9px 13px;font-size:12px;color:var(--blue3);margin-bottom:13px;display:flex;gap:7px">
+          <i class="ti ti-info-circle" style="flex-shrink:0"></i>
+          <span>Para reservas de múltiplos dias, use <strong>Hora de saída 00:00</strong> do primeiro dia e <strong>Hora de retorno 23:59</strong> do último. Adicione as datas no campo de observações.</span>
+        </div>
+        <div class="fg"><label class="flbl">Destino / Finalidade</label><input class="fi" id="rv-dst" placeholder="Ex: Reunião em Santo André — Campus Norte"></div>
+        <div class="fg"><label class="flbl">Observações (opcional)</label><textarea class="fi" id="rv-obs" placeholder="Detalhes, motorista, equipamentos…"></textarea></div>
+        <div class="form-footer">
+          <button class="btn btn-ghost" onclick="limparRv()"><i class="ti ti-x"></i> Limpar</button>
+          <button class="btn btn-p btn-lg" onclick="enviarReserva()"><i class="ti ti-send"></i> Enviar solicitação</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHECKLIST -->
+    <div class="form-card" id="ck-sec">
+      <div class="form-card-hdr" style="background:linear-gradient(120deg,#1B5E20,var(--green))">
+        <i class="ti ti-steering-wheel"></i>
+        <div><h2>Checklist de Viagem</h2><p>Registre a saída e o retorno do veículo</p></div>
+      </div>
+      <div class="form-card-body">
+        <div class="g2" style="margin-bottom:12px">
+          <div class="fg"><label class="flbl">Buscar pelo nome</label><input class="fi" id="ck-nome" placeholder="Digite seu nome" oninput="buscarCK()"></div>
+          <div class="fg"><label class="flbl">Veículo</label><select class="fi" id="ck-vfil" onchange="buscarCK()"><option value="">Todos</option></select></div>
+        </div>
+        <div id="ck-results"><div class="empty"><i class="ti ti-steering-wheel"></i><h4>Digite seu nome para buscar</h4></div></div>
+      </div>
+    </div>
+
+    <!-- LAVAGEM (visível ao Facilities e Admin) -->
+    <div class="form-card" id="lav-sec" style="display:none">
+      <div class="form-card-hdr" style="background:linear-gradient(120deg,#075985,#0EA5E9)">
+        <i class="ti ti-droplet"></i>
+        <div><h2>Agendamento de Lavagem</h2><p>Agende a lavagem dos veículos da frota</p></div>
+      </div>
+      <div class="form-card-body">
+        <div class="lav-alert"><i class="ti ti-info-circle" style="flex-shrink:0"></i><span>Selecione o veículo, a data e o horário desejado. O administrador irá confirmar após a conclusão da lavagem.</span></div>
+        <div class="g2">
+          <div class="fg"><label class="flbl">Veículo</label><select class="fi" id="lv-vei"></select></div>
+          <div class="fg"><label class="flbl">Data</label><input type="date" class="fi" id="lv-data"></div>
+        </div>
+        <div class="g2">
+          <div class="fg"><label class="flbl">Horário</label><input type="time" class="fi" id="lv-hora"></div>
+          <div class="fg"><label class="flbl">Tipo de lavagem</label>
+            <select class="fi" id="lv-tipo">
+              <option value="simples">Simples (externa)</option>
+              <option value="completa">Completa (interna + externa)</option>
+              <option value="polimento">Polimento</option>
+              <option value="higienizacao">Higienização interna</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="lv-obs" rows="2" style="resize:vertical" placeholder="Local de lavagem, observações especiais…"></textarea></div>
+        <div class="form-footer">
+          <button class="btn btn-ghost" onclick="limparLav()"><i class="ti ti-x"></i> Limpar</button>
+          <button class="wash-btn" style="flex:1;max-width:220px" onclick="agendarLavagem()"><i class="ti ti-droplet"></i> Agendar lavagem</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div class="admin-panel" id="admin-panel" style="display:none">
+      <div class="admin-panel-hdr"><i class="ti ti-shield-check" style="font-size:18px;color:rgba(255,255,255,.85)"></i><h2>Painel do Administrador</h2></div>
+      <div id="admin-login-wrap" style="padding:18px 20px">
+        <div style="max-width:320px">
+          <label class="flbl">Senha do administrador</label>
+          <input type="password" class="fi" id="admin-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPwd()" style="margin-bottom:10px">
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-g" onclick="checkPwd()"><i class="ti ti-lock-open"></i> Entrar</button>
+            <button class="btn btn-ghost" onclick="fecharAdmin()"><i class="ti ti-x"></i> Cancelar</button>
+          </div>
+          <div id="admin-msg" style="margin-top:9px;font-size:12px;color:var(--danger);display:none"></div>
+        </div>
+      </div>
+      <div id="admin-tabs-wrap" style="display:none">
+        <div class="admin-tabs">
+          <div class="atab on" id="atb-aprov" onclick="aTab('aprov')"><i class="ti ti-check"></i> Aprovações</div>
+          <div class="atab" id="atb-reservas" onclick="aTab('reservas')"><i class="ti ti-list"></i> Reservas</div>
+          <div class="atab" id="atb-veiculos" onclick="aTab('veiculos')"><i class="ti ti-car"></i> Veículos</div>
+          <div class="atab" id="atb-relatorio" onclick="aTab('relatorio')"><i class="ti ti-chart-bar"></i> Relatórios</div>
+          <div class="atab" id="atb-checklist" onclick="aTab('checklist')"><i class="ti ti-steering-wheel"></i> Checklists</div>
+          <div class="atab" id="atb-cpfs" onclick="aTab('cpfs')"><i class="ti ti-id-badge-2"></i> CPFs</div>
+          <div class="atab" id="atb-lavagem" onclick="aTab('lavagem')"><i class="ti ti-droplet"></i> Lavagens</div>
+        </div>
+        <div class="admin-pane on" id="ap-aprov"></div>
+        <div class="admin-pane" id="ap-reservas">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <select class="fi" style="flex:1;min-width:120px;font-size:12px" id="af-vei" onchange="renderTodasRes()"><option value="">Todos veículos</option></select>
+            <select class="fi" style="flex:1;min-width:120px;font-size:12px" id="af-st" onchange="renderTodasRes()"><option value="">Todos status</option><option value="pendente">Pendente</option><option value="aprovado">Aprovado</option><option value="negado">Negado</option><option value="concluido">Concluído</option></select>
+          </div>
+          <div id="todas-list"></div>
+        </div>
+        <div class="admin-pane" id="ap-veiculos">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="abrirVeiModal()"><i class="ti ti-plus"></i> Novo veículo</button></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Veículo</th><th>Placa</th><th>Km</th><th>Status</th><th>Local</th><th>Ações</th></tr></thead><tbody id="vei-tbody"></tbody></table></div>
+        </div>
+        <div class="admin-pane" id="ap-relatorio">
+          <div style="margin-bottom:16px">
+          <div class="lav-section-hdr"><i class="ti ti-droplet" style="color:#0EA5E9"></i> Histórico de lavagens por veículo</div>
+          <div id="lav-stats-panel" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px"></div>
+        </div>
+        <div style="display:flex;gap:9px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px">
+            <div style="flex:1;min-width:150px"><label class="flbl">Veículo</label><select class="fi" id="rel-vei" onchange="renderRel()"></select></div>
+            <div><label class="flbl">De</label><input type="date" class="fi" id="rel-de" onchange="renderRel()"></div>
+            <div><label class="flbl">Até</label><input type="date" class="fi" id="rel-ate" onchange="renderRel()"></div>
+          </div>
+          <div id="rel-body"></div>
+        </div>
+        <div class="admin-pane" id="ap-checklist">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <select class="fi" style="flex:1;min-width:130px;font-size:12px" id="ckadm-vei" onchange="renderCkAdm()"><option value="">Todos veículos</option></select>
+            <select class="fi" style="flex:1;min-width:130px;font-size:12px" id="ckadm-st" onchange="renderCkAdm()">
+              <option value="">Todos status</option>
+              <option value="aguard">Aguardando saída</option>
+              <option value="viagem">Em viagem</option>
+              <option value="conc">Concluídas</option>
+            </select>
+          </div>
+          <div id="ck-adm-list"></div>
+        </div>
+        <div class="admin-pane" id="ap-lavagem">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <select class="fi" style="flex:1;min-width:130px;font-size:12px" id="lavf-vei" onchange="renderLavAdm()"><option value="">Todos veículos</option></select>
+            <select class="fi" style="flex:1;min-width:130px;font-size:12px" id="lavf-st" onchange="renderLavAdm()">
+              <option value="">Todos status</option>
+              <option value="pendente">Pendente</option>
+              <option value="confirmado">Confirmado</option>
+            </select>
+          </div>
+          <div id="lav-adm-list"></div>
+        </div>
+        <div class="admin-pane" id="ap-cpfs">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+            <div style="font-size:13px;color:var(--gray-500)">Motoristas autorizados a utilizar os veículos da frota</div>
+            <button class="btn btn-p btn-sm" onclick="abrirCPFModal()"><i class="ti ti-plus"></i> Cadastrar CPF</button>
+          </div>
+          <div id="cpf-list-wrap" style="background:#fff;border-radius:var(--r14);border:1.5px solid var(--gray-200);overflow:hidden"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="ov" id="ov-ap"><div class="modal"><div class="mhdr"><h3 id="ap-title">Avaliar reserva</h3><button class="xbtn" onclick="cov('ov-ap')"><i class="ti ti-x"></i></button></div><div class="mbody" id="ap-body"></div><div class="mftr" id="ap-ftr"></div></div></div>
+
+<div class="ov" id="ov-er"><div class="modal lg"><div class="mhdr"><h3>Editar reserva</h3><button class="xbtn" onclick="cov('ov-er')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="g2"><div class="fg"><label class="flbl">Veículo</label><select class="fi" id="er-vei"></select></div><div class="fg"><label class="flbl">Status</label><select class="fi" id="er-st"><option value="pendente">Pendente</option><option value="aprovado">Aprovado</option><option value="negado">Negado</option><option value="concluido">Concluído</option></select></div></div>
+  <div class="g2"><div class="fg"><label class="flbl">Departamento</label><input class="fi" id="er-dep"></div><div class="fg"><label class="flbl">Responsável</label><input class="fi" id="er-resp"></div></div>
+  <div class="fg"><label class="flbl">Data</label><input type="date" class="fi" id="er-data"></div>
+  <div class="g2"><div class="fg"><label class="flbl">Hora saída</label><input type="time" class="fi" id="er-hsai"></div><div class="fg"><label class="flbl">Hora retorno</label><input type="time" class="fi" id="er-hret"></div></div>
+  <div class="fg"><label class="flbl">Destino</label><input class="fi" id="er-dst"></div>
+  <div class="fg"><label class="flbl">Feedback / Justificativa</label><textarea class="fi" id="er-feed" rows="2" style="resize:vertical"></textarea></div>
+  <input type="hidden" id="er-id">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-er')">Cancelar</button><button class="btn btn-p" onclick="salvarEditRes()"><i class="ti ti-check"></i> Salvar</button></div></div></div>
+
+<div class="ov" id="ov-vei"><div class="modal"><div class="mhdr"><h3 id="vm-tit">Novo veículo</h3><button class="xbtn" onclick="cov('ov-vei')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="g2"><div class="fg"><label class="flbl">Nome</label><input class="fi" id="vf-nome" placeholder="Ex: Kombi"></div><div class="fg"><label class="flbl">Modelo</label><input class="fi" id="vf-mod" placeholder="Ex: VW Kombi 1.4"></div></div>
+  <div class="g2"><div class="fg"><label class="flbl">Placa</label><input class="fi" id="vf-placa" placeholder="ABC-1234" style="font-family:monospace;text-transform:uppercase"></div><div class="fg"><label class="flbl">Cor</label><input class="fi" id="vf-cor"></div></div>
+  <div class="g2"><div class="fg"><label class="flbl">Status</label><select class="fi" id="vf-st"><option value="disponivel">Disponível</option><option value="manutencao">Em manutenção</option></select></div><div class="fg"><label class="flbl">Km atual</label><input type="number" class="fi" id="vf-km"></div></div>
+  <div class="fg"><label class="flbl">Localização</label><input class="fi" id="vf-loc"></div>
+  <div class="g2"><div class="fg"><label class="flbl">Última troca óleo</label><input type="date" class="fi" id="vf-oleo"></div><div class="fg"><label class="flbl">Próx. troca (km)</label><input type="number" class="fi" id="vf-prox"></div></div>
+  <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="vf-obs" rows="2" style="resize:vertical"></textarea></div>
+  <input type="hidden" id="vf-id">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-vei')">Cancelar</button><button class="btn btn-p" onclick="salvarVei()"><i class="ti ti-check"></i> Salvar</button></div></div></div>
+
+<div class="ov" id="ov-sv"><div class="modal"><div class="mhdr"><h3>Alterar status</h3><button class="xbtn" onclick="cov('ov-sv')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="fg"><label class="flbl">Veículo</label><input class="fi" id="sv-nm" readonly></div>
+  <div class="g2"><div class="fg"><label class="flbl">Status</label><select class="fi" id="sv-st"><option value="disponivel">Disponível</option><option value="manutencao">Em manutenção</option></select></div><div class="fg"><label class="flbl">Km atual</label><input type="number" class="fi" id="sv-km"></div></div>
+  <div class="fg"><label class="flbl">Localização</label><input class="fi" id="sv-loc"></div>
+  <div class="fg"><label class="flbl">Observação</label><textarea class="fi" id="sv-obs" rows="2" style="resize:vertical"></textarea></div>
+  <input type="hidden" id="sv-id">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-sv')">Cancelar</button><button class="btn btn-p" onclick="salvarSV()"><i class="ti ti-check"></i> Atualizar</button></div></div></div>
+
+<div class="ov" id="ov-cpf"><div class="modal"><div class="mhdr"><h3 id="cpf-modal-tit">Cadastrar CPF autorizado</h3><button class="xbtn" onclick="cov('ov-cpf')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="fg"><label class="flbl">CPF</label><input class="fi" id="cpf-f-num" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)" style="font-family:monospace;font-size:15px;letter-spacing:1px"></div>
+  <div class="fg"><label class="flbl">Nome completo</label><input class="fi" id="cpf-f-nome" placeholder="Nome do motorista"></div>
+  <div class="fg"><label class="flbl">Departamento</label><input class="fi" id="cpf-f-dep" placeholder="Departamento ou setor"></div>
+  <div class="fg"><label class="flbl">Data de assinatura do termo</label><input type="date" class="fi" id="cpf-f-data"></div>
+  <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="cpf-f-obs" rows="2" style="resize:vertical" placeholder="CNH, vencimento, restrições…"></textarea></div>
+  <input type="hidden" id="cpf-f-id">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-cpf')">Cancelar</button><button class="btn btn-p" onclick="salvarCPF()"><i class="ti ti-check"></i> Salvar</button></div></div></div>
+
+<div class="ov" id="ov-saida"><div class="modal"><div class="mhdr"><h3><i class="ti ti-car-suv"></i> Registrar Saída</h3><button class="xbtn" onclick="cov('ov-saida')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="alert a-info" style="margin-bottom:12px"><i class="ti ti-info-circle"></i> Preencha antes de sair com o veículo</div>
+  <div class="fg"><label class="flbl">Veículo</label><input class="fi" id="sd-vei" readonly></div>
+  <div class="fg"><label class="flbl">Responsável</label><input class="fi" id="sd-resp" readonly></div>
+  <div class="g2"><div class="fg"><label class="flbl">Data</label><input type="date" class="fi" id="sd-data"></div><div class="fg"><label class="flbl">Hora de saída</label><input type="time" class="fi" id="sd-hora"></div></div>
+  <div class="fg"><label class="flbl">Km na saída</label><input type="number" class="fi" id="sd-km" placeholder="Ex: 45230"></div>
+  <div class="fg"><label class="flbl">Condições do veículo</label><select class="fi" id="sd-cond"><option value="ok">✅ Boas condições</option><option value="avaria">⚠️ Possui avaria — descreva abaixo</option></select></div>
+  <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="sd-obs" rows="2" style="resize:vertical" placeholder="Avarias, combustível, outros…"></textarea></div>
+  <input type="hidden" id="sd-rid">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-saida')">Cancelar</button><button class="btn btn-p" onclick="salvarSaida()"><i class="ti ti-check"></i> Confirmar saída</button></div></div></div>
+
+<div class="ov" id="ov-ret"><div class="modal"><div class="mhdr" style="background:var(--green2)"><h3><i class="ti ti-home-check"></i> Registrar Retorno</h3><button class="xbtn" onclick="cov('ov-ret')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="alert a-ok" style="margin-bottom:12px"><i class="ti ti-info-circle"></i> Preencha ao devolver o veículo</div>
+  <div class="fg"><label class="flbl">Veículo</label><input class="fi" id="rt-vei" readonly></div>
+  <div id="rt-saida-info" style="background:var(--gray-50);border-radius:var(--r10);padding:9px 12px;margin-bottom:12px;font-size:12px;color:var(--gray-500)"></div>
+  <div class="g2"><div class="fg"><label class="flbl">Data</label><input type="date" class="fi" id="rt-data"></div><div class="fg"><label class="flbl">Hora de retorno</label><input type="time" class="fi" id="rt-hora"></div></div>
+  <div class="fg"><label class="flbl">Km no retorno</label><input type="number" class="fi" id="rt-km" placeholder="Ex: 45630"></div>
+  <div class="fg"><label class="flbl">Condições na devolução</label><select class="fi" id="rt-cond"><option value="ok">✅ Devolvido em boas condições</option><option value="avaria">⚠️ Avaria durante a viagem</option><option value="abastecimento">⛽ Necessita abastecimento</option></select></div>
+  <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="rt-obs" rows="2" style="resize:vertical" placeholder="Ocorrências, avarias, outros…"></textarea></div>
+  <input type="hidden" id="rt-rid">
+  <input type="hidden" id="rt-km-saida">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-ret')">Cancelar</button><button class="btn btn-g" onclick="salvarRetorno()"><i class="ti ti-check"></i> Confirmar retorno</button></div></div></div>
+
+<div class="ov" id="ov-prob"><div class="modal"><div class="mhdr"><h3>Registrar ocorrência</h3><button class="xbtn" onclick="cov('ov-prob')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="fg"><label class="flbl">Tipo</label><select class="fi" id="pb-t"><option>Mecânico</option><option>Elétrico</option><option>Dano visual</option><option>Pneu</option><option>Óleo/fluidos</option><option>Outro</option></select></div>
+  <div class="fg"><label class="flbl">Descrição</label><textarea class="fi" id="pb-d" rows="3" style="resize:vertical"></textarea></div>
+  <div class="fg"><label class="flbl">Relatado por</label><input class="fi" id="pb-r"></div>
+  <input type="hidden" id="pb-v">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-prob')">Cancelar</button><button class="btn btn-danger" onclick="salvarProb()"><i class="ti ti-alert-triangle"></i> Registrar</button></div></div></div>
+
+<div class="ov" id="ov-mn"><div class="modal"><div class="mhdr"><h3>Registrar manutenção</h3><button class="xbtn" onclick="cov('ov-mn')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="fg"><label class="flbl">Tipo</label><select class="fi" id="mn-t"><option value="oleo">Troca de óleo</option><option value="revisao">Revisão geral</option><option value="freios">Freios</option><option value="pneus">Pneus</option><option value="eletrica">Elétrica</option><option value="outro">Outro</option></select></div>
+  <div class="g2"><div class="fg"><label class="flbl">Data</label><input type="date" class="fi" id="mn-d"></div><div class="fg"><label class="flbl">Km</label><input type="number" class="fi" id="mn-k"></div></div>
+  <div class="fg"><label class="flbl">Próxima troca (km)</label><input type="number" class="fi" id="mn-p"></div>
+  <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="mn-o" rows="2" style="resize:vertical"></textarea></div>
+  <input type="hidden" id="mn-v">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-mn')">Cancelar</button><button class="btn btn-g" onclick="salvarManut()"><i class="ti ti-check"></i> Registrar</button></div></div></div>
+
+<script>
+/* ============================================================
+   CONFIG — preencha antes de publicar
+============================================================ */
+const SB_URL    = 'https://ahbblwxgqudzsxhkqurn.supabase.co';
+const SB_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoYmJsd3hncXVkenN4aGtxdXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDQwMzQsImV4cCI6MjA5NDgyMDAzNH0.RdGLueYYOdFY4-tn_lR_M5E6bEoIlKVg9W6Vi-6HqS0';
+const ADMIN_PWD = 'Alm*x@rif@d*';
+
+/* LOGOS */
+const L1='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zDbLbbmCWqkAdWVjm5Pnf/o0cg5OnMrMkUapr5agZLsw7FKpcOhpnZTc57UREUJT0RERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERF//Z';
+const L2='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';
+
+/* STATE */
+let SB,veiculos=[],reservas=[],cpfs=[],currentUser=null,adminLogado=false;
+let calY=new Date().getFullYear(),calM=new Date().getMonth();
+const TODAY=new Date().toISOString().split('T')[0];
+const NOW=new Date().toTimeString().slice(0,5);
+const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DOWS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const $=id=>document.getElementById(id);
+
+/* UTILS */
+function setLogos(){
+  ['ll1','ll2'].forEach((id,i)=>{const e=$(id);if(e){e.src='data:image/png;base64,'+(i===0?L1:L2);e.style.filter='brightness(0) invert(1)'}});
+  ['lg1','tb1','h1'].forEach(id=>{const e=$(id);if(e){e.src='data:image/png;base64,'+L1;e.style.filter='none'}});
+  ['lg2','tb2','h2'].forEach(id=>{const e=$(id);if(e){e.src='data:image/png;base64,'+L2;e.style.filter='none'}});
+}
+function toast(msg,type='info'){const el=document.createElement('div');el.className=`toast t-${type}`;const ic={ok:'ti-circle-check',err:'ti-circle-x',info:'ti-info-circle'};el.innerHTML=`<i class="ti ${ic[type]||'ti-info-circle'}"></i>${msg}`;$('toasts').appendChild(el);setTimeout(()=>el.remove(),4000);}
+function ov(id){$(id).classList.add('on')}
+function cov(id){$(id).classList.remove('on')}
+const fmt=s=>{if(!s)return'—';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`};
+function maskCPF(el){let v=el.value.replace(/\D/g,'');if(v.length>11)v=v.slice(0,11);v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');el.value=v;}
+function cleanCPF(s){return(s||'').replace(/\D/g,'')}
+function validCPF(s){
+  const n=cleanCPF(s);if(n.length!==11||/^(\d)\1+$/.test(n))return false;
+  let s1=0,s2=0;for(let i=0;i<9;i++)s1+=+n[i]*(10-i);let r1=(s1*10)%11;if(r1===10||r1===11)r1=0;if(r1!==+n[9])return false;
+  for(let i=0;i<10;i++)s2+=+n[i]*(11-i);let r2=(s2*10)%11;if(r2===10||r2===11)r2=0;return r2===+n[10];
+}
+
+/* INIT */
+window.addEventListener('DOMContentLoaded',async()=>{
+  setLogos();
+  if(SB_URL.includes('AQUI')){
+    $('s-load').innerHTML='<div style="color:#fff;font-family:Sora,sans-serif;text-align:center;padding:40px;max-width:400px"><h2 style="margin-bottom:12px">⚠️ Configure o Supabase</h2><p style="opacity:.8;font-size:14px">Edite o arquivo HTML e preencha SB_URL, SB_KEY e ADMIN_PWD</p></div>';
+    return;
+  }
+  SB=supabase.createClient(SB_URL,SB_KEY);
+  await loadData();
+  $('s-load').classList.remove('on');
+  $('s-login').classList.add('on');
+  const y=new Date().getFullYear();
+  $('rel-de').value=`${y}-01-01`;$('rel-ate').value=`${y}-12-31`;
+});
+
+async function loadData(){
+  try{
+    const[{data:v},{data:r},{data:c}]=await Promise.all([
+      SB.from('veiculos').select('*').order('nome'),
+      SB.from('reservas').select('*').order('data_saida',{ascending:false}),
+      SB.from('cpfs_autorizados').select('*').order('nome')
+    ]);
+    veiculos=v||[];reservas=r||[];cpfs=c||[];
+  }catch(e){console.error('loadData:',e);}
+}
+
+/* ============================================================
+   LOGIN CPF
+============================================================ */
+async function doLoginCPF(){
+  const raw=$('cpf-input').value.trim();
+  const num=cleanCPF(raw);
+  const msg=$('login-msg');
+  msg.style.display='none';
+  if(num.length!==11){msg.className='login-msg err';msg.innerHTML='<i class="ti ti-alert-circle"></i><span>CPF inválido. Digite os 11 dígitos.</span>';msg.style.display='flex';return;}
+  if(!validCPF(num)){msg.className='login-msg err';msg.innerHTML='<i class="ti ti-alert-circle"></i><span>CPF inválido. Verifique os dígitos e tente novamente.</span>';msg.style.display='flex';return;}
+  const found=cpfs.find(c=>cleanCPF(c.cpf)===num);
+  if(!found){
+    msg.className='login-msg err';
+    msg.innerHTML=`<i class="ti ti-lock" style="flex-shrink:0;margin-top:2px"></i><span><strong>Acesso não autorizado.</strong><br>Seu CPF não consta na relação de condutores habilitados. Para regularizar sua situação, compareça ao setor de <strong>Recursos Humanos</strong> munido de sua CNH e documentos pessoais para assinatura do <strong>Termo de Responsabilidade e Uso de Veículos Institucionais</strong>.</span>`;
+    msg.style.display='flex';
+    return;
+  }
+  currentUser=found;
+  $('app-av').textContent=found.nome.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  $('app-nm').textContent=found.nome.split(' ')[0];
+  $('hero-user-info').innerHTML=`<div class="hero-user"><i class="ti ti-user-check"></i> Bem-vindo, ${found.nome.split(' ')[0]} — ${found.departamento||'—'}</div>`;
+  $('rv-resp').value=found.nome;
+  $('rv-dep').value=found.departamento||'';
+  $('s-login').classList.remove('on');
+  $('s-app').classList.add('on');
+  renderAll();
+  initCkVFil();
+  await loadLavagens();
+  initLavSec();
+  $('rv-data').value=TODAY;
+  $('rv-hora-saida').value=NOW;
+  $('rv-hora-ret').value=NOW;
+}
+
+function doLogout(){currentUser=null;adminLogado=false;$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';$('cpf-input').value='';$('login-msg').style.display='none';$('s-app').classList.remove('on');$('s-login').classList.add('on');}
+
+/* ============================================================
+   RENDER ALL
+============================================================ */
+function renderAll(){renderStats();renderVgrid();renderRvVeiculos();renderCal();}
+
+/* STATUS */
+function vSt(v){
+  if(v.status==='manutencao')return{l:'Manutenção',cls:'b-mnt',bar:'vb-mnt',ic:'ti-tool'};
+  const h=reservas.find(r=>r.status==='aprovado'&&r.veiculo_id===v.id&&r.data_saida<=TODAY&&r.hora_retorno>=NOW);
+  if(h)return{l:'Em uso',cls:'b-uso',bar:'vb-uso',ic:'ti-car'};
+  const f=reservas.find(r=>r.status==='aprovado'&&r.veiculo_id===v.id&&r.data_saida>TODAY);
+  if(f)return{l:'Reservado',cls:'b-res',bar:'vb-res',ic:'ti-calendar-event'};
+  return{l:'Disponível',cls:'b-ok',bar:'vb-ok',ic:'ti-circle-check'};
+}
+function renderStats(){
+  const disp=veiculos.filter(v=>vSt(v).l==='Disponível').length;
+  const uso=veiculos.filter(v=>vSt(v).l==='Em uso').length;
+  const res=veiculos.filter(v=>vSt(v).l==='Reservado').length;
+  const mnt=veiculos.filter(v=>v.status==='manutencao').length;
+  $('hero-stats').innerHTML=`<div class="hstat"><div class="hstat-n">${veiculos.length}</div><div class="hstat-l">Total</div></div><div class="hstat"><div class="hstat-n" style="color:#4DD68A">${disp}</div><div class="hstat-l">Disponíveis</div></div><div class="hstat"><div class="hstat-n" style="color:#93C5FD">${uso}</div><div class="hstat-l">Em uso</div></div><div class="hstat"><div class="hstat-n" style="color:#FCD34D">${res}</div><div class="hstat-l">Reservados</div></div><div class="hstat"><div class="hstat-n" style="color:#FCA5A5">${mnt}</div><div class="hstat-l">Manutenção</div></div>`;
+  $('chips-bar').innerHTML=`<div class="chip"><div class="chip-dot" style="background:var(--green)"></div><div><span class="chip-n">${disp}</span><span class="chip-l">Disponíveis</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--blue3)"></div><div><span class="chip-n">${uso}</span><span class="chip-l">Em uso</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--warn)"></div><div><span class="chip-n">${res}</span><span class="chip-l">Reservados</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--danger)"></div><div><span class="chip-n">${mnt}</span><span class="chip-l">Manutenção</span></div></div>`;
+}
+function renderVgrid(){
+  $('vgrid').innerHTML=veiculos.map(v=>{
+    const s=vSt(v);
+    return`<div class="vcard"><div class="vcard-bar ${s.bar}"></div><div class="vcard-body"><div class="vcard-top"><div style="display:flex;align-items:center;gap:9px"><div class="vc-ic"><i class="ti ti-car"></i></div><div><div class="vc-name">${v.nome}</div><div class="vc-model">${v.modelo||''}</div></div></div><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></div><div><span class="vc-plate">${v.placa}</span></div><div class="vc-rows"><div class="vc-row"><strong>Local</strong>${v.localizacao||'—'}</div><div class="vc-row"><strong>Km</strong>${(v.km_atual||0).toLocaleString('pt-BR')}</div>${v.obs?`<div class="vc-row" style="color:var(--warn);font-size:10px"><i class="ti ti-alert-circle"></i>${v.obs}</div>`:''}</div></div></div>`;
+  }).join('')||'<div class="empty" style="grid-column:1/-1"><i class="ti ti-car-off"></i><h4>Nenhum veículo</h4></div>';
+}
+
+/* RESERVA FORM */
+function renderRvVeiculos(){$('rv-vei').innerHTML=veiculos.filter(v=>v.status!=='manutencao').map(v=>`<option value="${v.id}">${v.nome} (${v.placa})</option>`).join('');}
+function limparRv(){['rv-dep','rv-tel','rv-dst','rv-obs'].forEach(id=>$(id).value='');$('rv-data').value=TODAY;$('rv-hora-saida').value=NOW;$('rv-hora-ret').value=NOW;}
+
+async function enviarReserva(){
+  const vId=$('rv-vei').value,dep=$('rv-dep').value.trim(),resp=$('rv-resp').value.trim();
+  const tel=$('rv-tel').value.trim(),data=$('rv-data').value;
+  const hsai=$('rv-hora-saida').value,hret=$('rv-hora-ret').value;
+  const dst=$('rv-dst').value.trim(),obs=$('rv-obs').value.trim();
+  if(!dep||!resp||!data||!hsai||!hret||!dst){toast('Preencha todos os campos obrigatórios.','err');return}
+  if(hret<=hsai){toast('A hora de retorno deve ser após a hora de saída.','err');return}
+  const conf=reservas.find(r=>r.veiculo_id===vId&&r.status==='aprovado'&&r.data_saida===data&&!(r.hora_retorno<=hsai||r.hora_saida>=hret));
+  if(conf&&!confirm(`Conflito com reserva de ${conf.responsavel} (${conf.hora_saida}–${conf.hora_retorno}). Enviar mesmo assim?`))return;
+  const{error}=await SB.from('reservas').insert([{veiculo_id:vId,departamento:dep,responsavel:resp,contato:tel,data_saida:data,data_retorno:data,hora_saida:hsai,hora_retorno:hret,destino:dst,observacoes:obs,status:'pendente',feedback:'',checklist:{},criado_em:new Date().toISOString()}]).select();
+  if(error){toast('Erro ao enviar: '+(error.message||error.code),'err');console.error(error);return}
+  await loadData();renderAll();toast('✓ Solicitação enviada! Aguardando aprovação.','ok');limparRv();
+}
+
+/* CALENDÁRIO */
+function renderCal(){
+  $('cal-lbl').textContent=`${MONTHS[calM]} ${calY}`;
+  const first=new Date(calY,calM,1),last=new Date(calY,calM+1,0).getDate(),sd=first.getDay();
+  let h=DOWS.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0;i<sd;i++){const d=new Date(calY,calM,-sd+i+1);h+=`<div class="cal-day other-m"><span class="cdn">${d.getDate()}</span></div>`;}
+  for(let d=1;d<=last;d++){
+    const ds=`${calY}-${String(calM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isT=ds===TODAY;
+    const dr=reservas.filter(r=>r.status!=='negado'&&r.data_saida<=ds&&r.data_retorno>=ds);
+    const pills=dr.slice(0,3).map(r=>{const v=veiculos.find(x=>x.id===r.veiculo_id);const c=r.status==='aprovado'?'cp-g':r.status==='pendente'?'cp-a':'cp-b';return`<span class="cpill ${c}">${v?.nome||'?'} ${r.hora_saida?r.hora_saida:''}</span>`;}).join('')+(dr.length>3?`<span class="cpill cp-b">+${dr.length-3}</span>`:'');
+    h+=`<div class="cal-day${isT?' today-d':''}" onclick="showCalDay('${ds}')"><span class="cdn">${d}</span>${pills}</div>`;
+  }
+  const used=sd+last,rem=used%7?7-used%7:0;
+  for(let i=1;i<=rem;i++)h+=`<div class="cal-day other-m"><span class="cdn">${i}</span></div>`;
+  $('cal-grid').innerHTML=h;
+}
+function calNav(d){calM+=d;if(calM>11){calM=0;calY++;}if(calM<0){calM=11;calY--;}renderCal();}
+function rbadge(s){const m={pendente:{cls:'b-pend',l:'Pendente'},aprovado:{cls:'b-aprov',l:'Aprovado'},negado:{cls:'b-neg',l:'Negado'},concluido:{cls:'b-conc',l:'Concluído'}};const e=m[s]||m.pendente;return`<span class="badge ${e.cls}">${e.l}</span>`;}
+function showCalDay(ds){
+  const[y,m,d]=ds.split('-');
+  const dr=reservas.filter(r=>r.status!=='negado'&&r.data_saida<=ds&&r.data_retorno>=ds);
+  const el=$('cal-detail');
+  if(!dr.length){el.innerHTML='';return}
+  el.innerHTML=`<div class="stitle" style="padding:0 4px">Reservas em ${d}/${m}/${y}</div>`+dr.map(r=>{
+    const v=veiculos.find(x=>x.id===r.veiculo_id);
+    return`<div style="background:var(--gray-50);border-radius:var(--r10);padding:10px 13px;margin-bottom:8px;border:1px solid var(--gray-200)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><span style="font-family:var(--fh);font-weight:600;font-size:13px">${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></span>${rbadge(r.status)}</div>
+      <div style="font-size:12px;color:var(--gray-500);display:flex;flex-direction:column;gap:2px">
+        ${r.hora_saida?`<div><strong style="color:var(--gray-700)">Horário:</strong> ${r.hora_saida} → ${r.hora_retorno}</div>`:''}
+        <div><strong style="color:var(--gray-700)">Resp.:</strong> ${r.responsavel} — ${r.departamento}</div>
+        <div><strong style="color:var(--gray-700)">Destino:</strong> ${r.destino}</div>
+      </div>
+      ${r.feedback?`<div style="background:var(--blue-xl);border-radius:var(--r6);padding:7px 10px;margin-top:8px;font-size:12px;color:var(--blue3)"><strong>Feedback:</strong> ${r.feedback}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+/* CHECKLIST PÚBLICO */
+function initCkVFil(){const s=$('ck-vfil');if(s.options.length<=1)veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome+' ('+v.placa+')';s.appendChild(o);});}
+function buscarCK(){
+  const nome=($('ck-nome').value||'').trim().toLowerCase();
+  const vf=$('ck-vfil').value;
+  const el=$('ck-results');
+  if(nome.length<2){el.innerHTML='<div class="empty"><i class="ti ti-steering-wheel"></i><h4>Digite seu nome para buscar</h4></div>';return}
+  let lista=reservas.filter(r=>r.status==='aprovado'&&r.responsavel.toLowerCase().includes(nome));
+  if(vf)lista=lista.filter(r=>r.veiculo_id==vf);
+  if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-search-off"></i><h4>Nenhuma reserva aprovada encontrada</h4><p>Verifique com o administrador</p></div>';return}
+  el.innerHTML=lista.map(r=>ckCard(r)).join('');
+}
+function ckCard(r){
+  const v=veiculos.find(x=>x.id===r.veiculo_id);
+  const ck=r.checklist||{};
+  let stCls,stLbl;
+  if(ck.retorno_hora){stCls='ck-conc';stLbl='✅ Concluída';}
+  else if(ck.saida_hora){stCls='ck-viagem';stLbl='🚗 Em viagem';}
+  else{stCls='ck-aguard';stLbl='⏳ Aguardando saída';}
+  let body='';
+  if(ck.saida_hora){
+    body+=`<div class="ck-section"><i class="ti ti-logout"></i>Saída</div><div class="ck-info-grid"><div class="ck-field"><span class="ck-lbl">Data/Hora</span><span class="ck-val">${fmt(ck.saida_data)} ${ck.saida_hora}</span></div><div class="ck-field"><span class="ck-lbl">Km saída</span><span class="ck-val">${(ck.saida_km||0).toLocaleString('pt-BR')}</span></div></div>`;
+    if(ck.saida_cond==='avaria'&&ck.saida_obs)body+=`<div class="ck-avaria"><i class="ti ti-alert-triangle" style="flex-shrink:0"></i><span><strong>Avaria na saída:</strong> ${ck.saida_obs}</span></div>`;
+  }
+  if(ck.retorno_hora){
+    const kmR=ck.retorno_km&&ck.saida_km?ck.retorno_km-ck.saida_km:null;
+    body+=`<div class="ck-divider"></div><div class="ck-section"><i class="ti ti-login"></i>Retorno</div><div class="ck-info-grid"><div class="ck-field"><span class="ck-lbl">Data/Hora</span><span class="ck-val">${fmt(ck.retorno_data)} ${ck.retorno_hora}</span></div><div class="ck-field"><span class="ck-lbl">Km retorno</span><span class="ck-val">${(ck.retorno_km||0).toLocaleString('pt-BR')}</span></div></div>`;
+    if(ck.retorno_cond!=='ok')body+=`<div class="ck-avaria"><i class="ti ti-alert-triangle" style="flex-shrink:0"></i><span><strong>${ck.retorno_cond==='avaria'?'Avaria no retorno':'Abastecimento necessário'}:</strong> ${ck.retorno_obs||'—'}</span></div>`;
+    if(kmR!==null)body+=`<div><span style="font-size:12px;color:var(--gray-400)">Total percorrido:</span> <span class="ck-km-badge"><i class="ti ti-road"></i> ${kmR.toLocaleString('pt-BR')} km</span></div>`;
+  }
+  let btns='';
+  if(!ck.saida_hora)btns=`<button class="ck-big-btn ck-saida-btn" onclick="abrirSaida(${r.id})"><i class="ti ti-logout"></i> Registrar Saída</button>`;
+  else if(!ck.retorno_hora)btns=`<button class="ck-big-btn ck-retorno-btn" onclick="abrirRetorno(${r.id})"><i class="ti ti-login"></i> Registrar Retorno</button>`;
+  else btns=`<div style="text-align:center;padding:6px;font-size:13px;color:var(--green2);font-weight:600;font-family:var(--fh)"><i class="ti ti-circle-check"></i> Viagem concluída!</div>`;
+  return`<div class="ck-card"><div class="ck-card-top"><div><div class="ck-card-name"><i class="ti ti-car" style="color:var(--blue)"></i> ${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></div><div class="ck-card-sub">${fmt(r.data_saida)} ${r.hora_saida?r.hora_saida+' → '+r.hora_retorno:''} · ${r.destino}</div></div><span class="ck-status ${stCls}">${stLbl}</span></div>${body||btns?`<div class="ck-body">${body}${body&&btns?'<div class="ck-divider"></div>':''}<div class="ck-btn-row">${btns}</div></div>`:''}</div>`;
+}
+
+function abrirSaida(rid){
+  const r=reservas.find(x=>x.id===rid);const v=veiculos.find(x=>x.id===r.veiculo_id);
+  $('sd-rid').value=rid;$('sd-vei').value=(v?.nome||'?')+' — '+(v?.placa||'');
+  $('sd-resp').value=r.responsavel+' · '+r.departamento;
+  $('sd-data').value=TODAY;$('sd-hora').value=NOW;$('sd-km').value=v?.km_atual||'';
+  $('sd-cond').value='ok';$('sd-obs').value='';ov('ov-saida');
+}
+async function salvarSaida(){
+  const rid=parseInt($('sd-rid').value),km=parseInt($('sd-km').value);
+  if(!km){toast('Informe o Km de saída.','err');return}
+  const r=reservas.find(x=>x.id===rid);
+  const ck={...(r.checklist||{}),saida_data:$('sd-data').value,saida_hora:$('sd-hora').value,saida_km:km,saida_cond:$('sd-cond').value,saida_obs:$('sd-obs').value.trim()};
+  const{error}=await SB.from('reservas').update({checklist:ck}).eq('id',rid);
+  if(error){toast('Erro: '+(error.message||error.code),'err');return}
+  const v=veiculos.find(x=>x.id===r.veiculo_id);
+  if(v&&km>(v.km_atual||0))await SB.from('veiculos').update({km_atual:km}).eq('id',v.id);
+  cov('ov-saida');await loadData();renderAll();buscarCK();toast('✓ Saída registrada!','ok');
+}
+function abrirRetorno(rid){
+  const r=reservas.find(x=>x.id===rid);const v=veiculos.find(x=>x.id===r.veiculo_id);const ck=r.checklist||{};
+  $('rt-rid').value=rid;$('rt-km-saida').value=ck.saida_km||0;
+  $('rt-vei').value=(v?.nome||'?')+' — '+(v?.placa||'');
+  $('rt-saida-info').innerHTML=`<strong>Saída registrada:</strong> ${fmt(ck.saida_data)} às ${ck.saida_hora} · Km: ${(ck.saida_km||0).toLocaleString('pt-BR')}`;
+  $('rt-data').value=TODAY;$('rt-hora').value=NOW;$('rt-km').value='';$('rt-cond').value='ok';$('rt-obs').value='';ov('ov-ret');
+}
+async function salvarRetorno(){
+  const rid=parseInt($('rt-rid').value),kmSai=parseInt($('rt-km-saida').value)||0,km=parseInt($('rt-km').value);
+  if(!km){toast('Informe o Km de retorno.','err');return}
+  if(km<kmSai&&!confirm('Km de retorno menor que o de saída. Confirmar?'))return;
+  const r=reservas.find(x=>x.id===rid);
+  const ck={...(r.checklist||{}),retorno_data:$('rt-data').value,retorno_hora:$('rt-hora').value,retorno_km:km,retorno_cond:$('rt-cond').value,retorno_obs:$('rt-obs').value.trim()};
+  const{error}=await SB.from('reservas').update({checklist:ck,status:'concluido'}).eq('id',rid);
+  if(error){toast('Erro: '+(error.message||error.code),'err');return}
+  const v=veiculos.find(x=>x.id===r.veiculo_id);
+  if(v&&km>(v.km_atual||0))await SB.from('veiculos').update({km_atual:km}).eq('id',v.id);
+  cov('ov-ret');await loadData();renderAll();buscarCK();toast('✓ Retorno registrado! '+(km-kmSai).toLocaleString('pt-BR')+' km percorridos.','ok');
+}
+
+/* ADMIN */
+function toggleAdmin(){if(adminLogado){fecharAdmin();return}$('admin-panel').style.display='block';$('admin-login-wrap').style.display='block';$('admin-tabs-wrap').style.display='none';$('admin-pwd').value='';$('admin-msg').style.display='none';$('admin-panel').scrollIntoView({behavior:'smooth',block:'start'});}
+function checkPwd(){
+  if($('admin-pwd').value===ADMIN_PWD){
+    adminLogado=true;$('admin-login-wrap').style.display='none';$('admin-tabs-wrap').style.display='block';
+    $('admin-btn').classList.add('admin-active');$('admin-lbl').textContent='Admin ativo';
+    renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
+    await loadLavagens();renderLavAdm();initLavSec();
+    toast('Modo administrador ativado.','ok');
+  }else{$('admin-msg').textContent='Senha incorreta.';$('admin-msg').style.display='block';$('admin-pwd').value='';}
+}
+function fecharAdmin(){adminLogado=false;$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';}
+function aTab(n){['aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem'].forEach(x=>{$('atb-'+x)?.classList.toggle('on',x===n);$('ap-'+x)?.classList.toggle('on',x===n);});if(n==='reservas')renderTodasRes();if(n==='veiculos')renderVeiculosAdm();if(n==='relatorio'){initRelFil();renderRel();}if(n==='checklist')renderCkAdm();if(n==='cpfs')renderCPFs();if(n==='lavagem'){renderLavAdm();renderLavStats();}}
+
+/* APROVAÇÕES */
+function renderAprov(){
+  const pend=reservas.filter(r=>r.status==='pendente');
+  const el=$('ap-aprov');
+  if(!pend.length){el.innerHTML='<div class="empty"><i class="ti ti-circle-check" style="color:var(--green)"></i><h4>Nenhuma pendente</h4></div>';return}
+  el.innerHTML=pend.map(r=>{
+    const v=veiculos.find(x=>x.id===r.veiculo_id);
+    return`<div style="background:var(--gray-50);border-radius:var(--r14);border:1.5px solid var(--gray-200);padding:14px 16px;margin-bottom:11px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px"><div><div style="font-family:var(--fh);font-weight:600;font-size:13px">${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></div><div style="font-size:11px;color:var(--gray-400)">${fmt(r.data_saida)} ${r.hora_saida?r.hora_saida+'→'+r.hora_retorno:''} · Solicitado ${fmt(r.criado_em?.split('T')[0])}</div></div>${rbadge(r.status)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;margin-bottom:10px">
+        <div><span style="color:var(--gray-400)">Resp.:</span> ${r.responsavel}</div>
+        <div><span style="color:var(--gray-400)">Dep.:</span> ${r.departamento}</div>
+        <div style="grid-column:1/-1"><span style="color:var(--gray-400)">Destino:</span> ${r.destino}</div>
+        ${r.observacoes?`<div style="grid-column:1/-1"><span style="color:var(--gray-400)">Obs.:</span> ${r.observacoes}</div>`:''}
+      </div>
+      <div style="display:flex;gap:7px;justify-content:flex-end;padding-top:9px;border-top:1px solid var(--gray-100);flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="abrirEditRes(${r.id})"><i class="ti ti-edit"></i>Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="openAp(${r.id},'negar')"><i class="ti ti-x"></i>Negar</button>
+        <button class="btn btn-g btn-sm" onclick="openAp(${r.id},'aprovar')"><i class="ti ti-check"></i>Aprovar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+let curApId=null;
+function openAp(id,acao){
+  curApId=id;const r=reservas.find(x=>x.id===id);const v=veiculos.find(x=>x.id===r.veiculo_id);
+  $('ap-title').textContent=acao==='aprovar'?'Aprovar reserva':'Negar reserva';
+  $('ap-body').innerHTML=`<div class="alert ${acao==='aprovar'?'a-ok':'a-danger'}" style="margin-bottom:12px"><i class="ti ${acao==='aprovar'?'ti-check':'ti-x'}"></i><div>Você irá <strong>${acao==='aprovar'?'APROVAR':'NEGAR'}</strong> a reserva de <strong>${v?.nome}</strong> por <strong>${r.responsavel}</strong> em ${fmt(r.data_saida)} ${r.hora_saida||''}.</div></div>
+  <div class="fg"><label class="flbl">Feedback (visível ao solicitante)</label><textarea class="fi" id="ap-feed" rows="3" style="resize:vertical"></textarea></div>`;
+  $('ap-ftr').innerHTML=`<button class="btn btn-ghost" onclick="cov('ov-ap')">Cancelar</button><button class="btn ${acao==='aprovar'?'btn-g':'btn-danger'}" onclick="confAp('${acao}')"><i class="ti ${acao==='aprovar'?'ti-check':'ti-x'}"></i>Confirmar</button>`;
+  ov('ov-ap');
+}
+async function confAp(acao){
+  const st=acao==='aprovar'?'aprovado':'negado',feed=$('ap-feed').value.trim();
+  const{error}=await SB.from('reservas').update({status:st,feedback:feed}).eq('id',curApId);
+  if(error){toast('Erro: '+(error.message),'err');return}
+  cov('ov-ap');await loadData();renderAprov();renderAll();toast(acao==='aprovar'?'Reserva aprovada!':'Reserva negada.',acao==='aprovar'?'ok':'info');
+}
+function abrirEditRes(id){
+  const r=reservas.find(x=>x.id===id);if(!r)return;
+  $('er-id').value=id;$('er-vei').innerHTML=veiculos.map(v=>`<option value="${v.id}"${v.id===r.veiculo_id?' selected':''}>${v.nome}</option>`).join('');
+  $('er-st').value=r.status;$('er-dep').value=r.departamento;$('er-resp').value=r.responsavel;
+  $('er-data').value=r.data_saida;$('er-hsai').value=r.hora_saida||'';$('er-hret').value=r.hora_retorno||'';
+  $('er-dst').value=r.destino;$('er-feed').value=r.feedback||'';
+  cov('ov-ap');ov('ov-er');
+}
+async function salvarEditRes(){
+  const id=parseInt($('er-id').value);
+  const{error}=await SB.from('reservas').update({veiculo_id:$('er-vei').value,status:$('er-st').value,departamento:$('er-dep').value.trim(),responsavel:$('er-resp').value.trim(),data_saida:$('er-data').value,data_retorno:$('er-data').value,hora_saida:$('er-hsai').value,hora_retorno:$('er-hret').value,destino:$('er-dst').value.trim(),feedback:$('er-feed').value.trim()}).eq('id',id);
+  if(error){toast('Erro: '+(error.message),'err');return}
+  cov('ov-er');await loadData();renderAprov();renderAll();toast('Reserva atualizada!','ok');
+}
+
+/* TODAS RESERVAS */
+function initAdmFilters(){$('af-vei').innerHTML='<option value="">Todos veículos</option>'+veiculos.map(v=>`<option value="${v.id}">${v.nome}</option>`).join('');}
+function renderTodasRes(){
+  const fv=$('af-vei').value,fs=$('af-st').value;
+  let list=[...reservas];if(fv)list=list.filter(r=>r.veiculo_id==fv);if(fs)list=list.filter(r=>r.status===fs);
+  list.sort((a,b)=>b.data_saida.localeCompare(a.data_saida));
+  if(!list.length){$('todas-list').innerHTML='<div class="empty"><i class="ti ti-calendar-off"></i><h4>Nenhuma reserva</h4></div>';return}
+  $('todas-list').innerHTML=list.map(r=>{const v=veiculos.find(x=>x.id===r.veiculo_id);return`<div style="background:var(--gray-50);border-radius:var(--r10);border:1px solid var(--gray-200);padding:11px 13px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px"><div><div style="font-family:var(--fh);font-weight:600;font-size:13px">${v?.nome||'?'}</div><div style="font-size:11px;color:var(--gray-400)">${fmt(r.data_saida)} ${r.hora_saida?r.hora_saida+'→'+r.hora_retorno:''}</div></div>${rbadge(r.status)}</div><div style="font-size:12px;color:var(--gray-500);margin-bottom:8px">${r.responsavel} — ${r.departamento}<br>${r.destino}${r.feedback?`<br><em style="color:var(--blue3)">Feedback: ${r.feedback}</em>`:''}</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="abrirEditRes(${r.id})"><i class="ti ti-edit"></i>Editar</button><button class="btn btn-danger btn-sm" onclick="delRes(${r.id})"><i class="ti ti-trash"></i>Remover</button></div></div>`;}).join('');
+}
+async function delRes(id){if(!confirm('Remover esta reserva?'))return;const{error}=await SB.from('reservas').delete().eq('id',id);if(error){toast('Erro','err');return}await loadData();renderTodasRes();toast('Removida.','info');}
+
+/* VEÍCULOS ADMIN */
+function renderVeiculosAdm(){
+  $('vei-tbody').innerHTML=veiculos.map(v=>{const s=vSt(v);return`<tr><td><div class="td-p">${v.nome}</div><div style="font-size:10px;color:var(--gray-400)">${v.modelo||''}</div></td><td style="font-family:monospace">${v.placa}</td><td>${(v.km_atual||0).toLocaleString('pt-BR')}</td><td><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></td><td style="font-size:11px">${v.localizacao||'—'}</td><td><div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="abrirVeiModal(${v.id})"><i class="ti ti-edit"></i></button><button class="btn btn-warn btn-sm" onclick="abrirSV(${v.id})"><i class="ti ti-refresh"></i></button><button class="btn btn-danger btn-sm" onclick="delVei(${v.id})"><i class="ti ti-trash"></i></button></div></td></tr>`;}).join('')||`<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">Nenhum veículo.</td></tr>`;
+}
+function abrirVeiModal(id){const v=id?veiculos.find(x=>x.id===id):null;$('vm-tit').textContent=v?'Editar veículo':'Novo veículo';$('vf-id').value=v?.id||'';$('vf-nome').value=v?.nome||'';$('vf-mod').value=v?.modelo||'';$('vf-placa').value=v?.placa||'';$('vf-cor').value=v?.cor||'';$('vf-st').value=v?.status||'disponivel';$('vf-km').value=v?.km_atual||'';$('vf-loc').value=v?.localizacao||'';$('vf-oleo').value=v?.ultima_troca_oleo||'';$('vf-prox').value=v?.proxima_troca_oleo_km||'';$('vf-obs').value=v?.obs||'';ov('ov-vei');}
+async function salvarVei(){
+  const id=$('vf-id').value;
+  const data={nome:$('vf-nome').value.trim(),modelo:$('vf-mod').value.trim(),placa:$('vf-placa').value.trim().toUpperCase(),cor:$('vf-cor').value.trim(),status:$('vf-st').value,km_atual:parseInt($('vf-km').value)||0,localizacao:$('vf-loc').value.trim(),ultima_troca_oleo:$('vf-oleo').value||null,proxima_troca_oleo_km:parseInt($('vf-prox').value)||null,obs:$('vf-obs').value.trim()};
+  if(!data.nome||!data.placa){toast('Nome e placa obrigatórios.','err');return}
+  if(!id){data.problemas=[];data.manutencoes=[];}
+  const{error}=id?await SB.from('veiculos').update(data).eq('id',id):await SB.from('veiculos').insert([data]).select();
+  if(error){toast('Erro: '+(error.message||error.code),'err');console.error(error);return}
+  cov('ov-vei');await loadData();renderVeiculosAdm();renderAll();toast(id?'Veículo atualizado!':'Cadastrado!','ok');
+}
+async function delVei(id){const v=veiculos.find(x=>x.id===id);if(!confirm(`Remover "${v?.nome}"?`))return;const{error}=await SB.from('veiculos').delete().eq('id',id);if(error){toast('Erro','err');return}await loadData();renderVeiculosAdm();renderAll();toast('Removido.','info');}
+function abrirSV(id){const v=veiculos.find(x=>x.id===id);$('sv-id').value=id;$('sv-nm').value=`${v.nome} (${v.placa})`;$('sv-st').value=v.status||'disponivel';$('sv-km').value=v.km_atual||'';$('sv-loc').value=v.localizacao||'';$('sv-obs').value=v.obs||'';ov('ov-sv');}
+async function salvarSV(){const id=$('sv-id').value;const{error}=await SB.from('veiculos').update({status:$('sv-st').value,km_atual:parseInt($('sv-km').value)||0,localizacao:$('sv-loc').value.trim(),obs:$('sv-obs').value.trim()}).eq('id',id);if(error){toast('Erro','err');return}cov('ov-sv');await loadData();renderVeiculosAdm();renderAll();toast('Status atualizado!','ok');}
+
+/* RELATÓRIO */
+function initRelFil(){const s=$('rel-vei');if(!s.options.length)veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=`${v.nome} (${v.placa})`;s.appendChild(o);});}
+function renderRel(){
+  const vid=$('rel-vei').value||veiculos[0]?.id;
+  if(!vid){$('rel-body').innerHTML='<div class="empty"><i class="ti ti-car"></i><h4>Selecione um veículo</h4></div>';return}
+  const v=veiculos.find(x=>x.id==vid)||veiculos[0];
+  const de=$('rel-de').value,ate=$('rel-ate').value;
+  let rv=reservas.filter(r=>r.veiculo_id==v.id&&['aprovado','concluido'].includes(r.status));
+  if(de)rv=rv.filter(r=>r.data_retorno>=de);if(ate)rv=rv.filter(r=>r.data_saida<=ate);
+  const mots=[...new Set(rv.map(r=>r.responsavel))];
+  const kmA=v.proxima_troca_oleo_km&&v.km_atual&&(v.proxima_troca_oleo_km-v.km_atual)<=3000;
+  const MTYPE={oleo:'Troca de óleo',revisao:'Revisão geral',freios:'Freios',pneus:'Pneus',eletrica:'Elétrica',outro:'Outro'};
+  $('rel-body').innerHTML=`
+    ${kmA?`<div class="alert a-warn" style="margin-bottom:12px"><i class="ti ti-alert-triangle"></i><strong>Atenção:</strong> Próx. troca de óleo em ${(v.proxima_troca_oleo_km-v.km_atual).toLocaleString('pt-BR')} km.</div>`:''}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:14px">
+      ${[['Motoristas',mots.length,'no período'],['Viagens',rv.length,'realizadas'],['Km atual',(v.km_atual||0).toLocaleString('pt-BR'),'hodômetro'],['Próx. óleo',v.proxima_troca_oleo_km?.toLocaleString('pt-BR')||'—',v.proxima_troca_oleo_km&&v.km_atual?(v.proxima_troca_oleo_km-v.km_atual).toLocaleString('pt-BR')+' km':''],['Últ. troca',fmt(v.ultima_troca_oleo),''],['Status',v.status==='manutencao'?'Manutenção':'Operacional','']].map(([l,n,s])=>`<div style="background:var(--gray-50);border-radius:var(--r10);padding:10px 12px;border:1.5px solid var(--gray-200)"><div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">${l}</div><div style="font-family:var(--fh);font-size:15px;font-weight:700">${n}</div>${s?`<div style="font-size:10px;color:var(--gray-400)">${s}</div>`:''}</div>`).join('')}
+    </div>
+    <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Checklists de viagem</div>
+    ${rv.filter(r=>r.checklist&&r.checklist.saida_hora).length?rv.filter(r=>r.checklist&&r.checklist.saida_hora).map(r=>{
+      const ck=r.checklist||{};
+      const kmR=ck.retorno_km&&ck.saida_km?ck.retorno_km-ck.saida_km:null;
+      const temAvaria=(ck.saida_cond==='avaria'&&ck.saida_obs)||(ck.retorno_cond!=='ok'&&ck.retorno_obs);
+      return`<div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r10);padding:12px 14px;margin-bottom:8px${temAvaria?';border-left:3px solid var(--danger)':''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-weight:600;font-size:13px;font-family:var(--fh)">${r.responsavel}</div>
+          <span style="font-size:11px;color:var(--gray-400)">${fmt(r.data_saida)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px;margin-bottom:${temAvaria?'8px':'0'}">
+          <div><span style="color:var(--gray-400)">Saída:</span> ${ck.saida_hora||'—'} · ${(ck.saida_km||0).toLocaleString('pt-BR')} km</div>
+          <div><span style="color:var(--gray-400)">Retorno:</span> ${ck.retorno_hora||'—'} · ${ck.retorno_km?(ck.retorno_km).toLocaleString('pt-BR')+' km':'—'}</div>
+          <div><span style="color:var(--gray-400)">Percorrido:</span> ${kmR!==null?kmR.toLocaleString('pt-BR')+' km':'—'}</div>
+        </div>
+        ${ck.saida_cond==='avaria'&&ck.saida_obs?`<div style="background:#FEF2F2;border-radius:6px;padding:6px 10px;font-size:11px;color:var(--danger);margin-top:6px"><i class="ti ti-alert-triangle"></i> <strong>Avaria na saída:</strong> ${ck.saida_obs}</div>`:''}
+        ${ck.retorno_cond!=='ok'&&ck.retorno_obs?`<div style="background:#FEF2F2;border-radius:6px;padding:6px 10px;font-size:11px;color:var(--danger);margin-top:4px"><i class="ti ti-alert-triangle"></i> <strong>${ck.retorno_cond==='avaria'?'Avaria no retorno':'Abastecimento'}:</strong> ${ck.retorno_obs}</div>`:''}
+      </div>`;
+    }).join(''):`<div style="font-size:13px;color:var(--gray-400);margin-bottom:14px">Nenhum checklist registrado no período.</div>`}
+    <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin:12px 0 8px">Ocorrências <button class="btn btn-danger btn-sm" onclick="abrirProb('${v.id}')"><i class="ti ti-plus"></i>Registrar</button></div>
+    ${(v.problemas||[]).length?(v.problemas||[]).map(p=>`<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--r10);padding:10px 13px;margin-bottom:7px"><div style="font-size:10px;font-weight:700;color:var(--danger);text-transform:uppercase;margin-bottom:3px">${p.tipo} — ${fmt(p.data)}</div><div style="font-size:13px">${p.desc}</div><div style="font-size:11px;color:var(--gray-400);margin-top:3px">Por: ${p.resp}</div></div>`).join(''):`<div style="font-size:13px;color:var(--gray-400);margin-bottom:12px">Nenhuma ocorrência.</div>`}
+    <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin:12px 0 8px">Manutenções <button class="btn btn-g btn-sm" onclick="abrirManut('${v.id}')"><i class="ti ti-plus"></i>Registrar</button></div>
+    ${(v.manutencoes||[]).length?`<div class="tl">${(v.manutencoes||[]).slice().reverse().map(mn=>`<div class="tli"><div class="tld tl-ok"></div><div style="font-weight:600;font-size:13px">${MTYPE[mn.tipo]||mn.tipo} — ${fmt(mn.data)}</div><div style="font-size:11px;color:var(--gray-400)">Km:${(mn.km||0).toLocaleString('pt-BR')}${mn.proxKm?' · Próx.:'+mn.proxKm.toLocaleString('pt-BR')+' km':''}</div>${mn.obs?`<div style="font-size:11px">${mn.obs}</div>`:''}</div>`).join('')}</div>`:`<div style="font-size:13px;color:var(--gray-400)">Nenhuma.</div>`}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn btn-ghost btn-sm" onclick="expCSV('${v.id}')"><i class="ti ti-download"></i>CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="expTXT('${v.id}')"><i class="ti ti-file-text"></i>TXT</button>
+    </div>`;
+}
+function abrirProb(vid){$('pb-v').value=vid;['pb-d','pb-r'].forEach(id=>$(id).value='');ov('ov-prob');}
+async function salvarProb(){const vid=$('pb-v').value,tipo=$('pb-t').value,desc=$('pb-d').value.trim(),resp=$('pb-r').value.trim();if(!desc||!resp){toast('Preencha descrição e responsável.','err');return}const v=veiculos.find(x=>x.id==vid);const{error}=await SB.from('veiculos').update({problemas:[...(v.problemas||[]),{data:TODAY,tipo,desc,resp}]}).eq('id',vid);if(error){toast('Erro','err');return}cov('ov-prob');await loadData();renderRel();toast('Registrado!','info');}
+function abrirManut(vid){$('mn-v').value=vid;$('mn-d').value=TODAY;['mn-k','mn-p','mn-o'].forEach(id=>$(id).value='');ov('ov-mn');}
+async function salvarManut(){const vid=$('mn-v').value,tipo=$('mn-t').value,data=$('mn-d').value,km=parseInt($('mn-k').value)||0,proxKm=parseInt($('mn-p').value)||null,obs=$('mn-o').value.trim();const v=veiculos.find(x=>x.id==vid);const upd={manutencoes:[...(v.manutencoes||[]),{tipo,data,km,proxKm,obs}]};if(tipo==='oleo'&&data)upd.ultima_troca_oleo=data;if(tipo==='oleo'&&proxKm)upd.proxima_troca_oleo_km=proxKm;if(km>v.km_atual)upd.km_atual=km;const{error}=await SB.from('veiculos').update(upd).eq('id',vid);if(error){toast('Erro','err');return}cov('ov-mn');await loadData();renderRel();toast('Manutenção registrada!','ok');}
+
+/* CHECKLIST ADMIN */
+function renderCkAdm(){
+  const fv=$('ckadm-vei').value,fs=$('ckadm-st').value;
+  if(!$('ckadm-vei').options.length||$('ckadm-vei').options.length===1) veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome;$('ckadm-vei').appendChild(o);});
+  let list=reservas.filter(r=>r.status==='aprovado'||r.status==='concluido');
+  if(fv)list=list.filter(r=>r.veiculo_id==fv);
+  if(fs==='aguard')list=list.filter(r=>!r.checklist?.saida_hora);
+  else if(fs==='viagem')list=list.filter(r=>r.checklist?.saida_hora&&!r.checklist?.retorno_hora);
+  else if(fs==='conc')list=list.filter(r=>r.checklist?.retorno_hora);
+  list.sort((a,b)=>b.data_saida.localeCompare(a.data_saida));
+  const el=$('ck-adm-list');
+  if(!list.length){el.innerHTML='<div class="empty"><i class="ti ti-steering-wheel"></i><h4>Nenhum checklist</h4></div>';return}
+  el.innerHTML=list.map(r=>{
+    const v=veiculos.find(x=>x.id===r.veiculo_id);const ck=r.checklist||{};
+    const kmR=ck.retorno_km&&ck.saida_km?ck.retorno_km-ck.saida_km:null;
+    const temAvaria=(ck.saida_cond==='avaria'&&ck.saida_obs)||(ck.retorno_cond!=='ok'&&ck.retorno_obs);
+    let stCls,stLbl;
+    if(ck.retorno_hora){stCls='ck-conc';stLbl='✅ Concluída';}
+    else if(ck.saida_hora){stCls='ck-viagem';stLbl='🚗 Em viagem';}
+    else{stCls='ck-aguard';stLbl='⏳ Aguardando';}
+    return`<div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:13px 15px;margin-bottom:9px${temAvaria?';border-left:3px solid var(--danger)':''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div><div style="font-family:var(--fh);font-weight:600;font-size:13px">${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></div>
+        <div style="font-size:11px;color:var(--gray-400)">${r.responsavel} · ${fmt(r.data_saida)} ${r.hora_saida||''}</div></div>
+        <span class="ck-status ${stCls}">${stLbl}</span>
+      </div>
+      ${ck.saida_hora?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;padding:8px;background:var(--gray-50);border-radius:var(--r6);margin-bottom:6px">
+        <div><span style="color:var(--gray-400)">Saída:</span> ${ck.saida_hora} · ${(ck.saida_km||0).toLocaleString('pt-BR')} km</div>
+        <div><span style="color:var(--gray-400)">Retorno:</span> ${ck.retorno_hora||'—'} · ${ck.retorno_km?ck.retorno_km.toLocaleString('pt-BR')+' km':'—'}</div>
+        ${kmR!==null?`<div style="grid-column:1/-1"><span style="color:var(--gray-400)">Percorrido:</span> <strong>${kmR.toLocaleString('pt-BR')} km</strong></div>`:''}
+      </div>`:''}
+      ${ck.saida_cond==='avaria'&&ck.saida_obs?`<div style="background:#FEF2F2;border-radius:6px;padding:6px 10px;font-size:11px;color:var(--danger);margin-bottom:4px"><i class="ti ti-alert-triangle"></i> <strong>Avaria na saída:</strong> ${ck.saida_obs}</div>`:''}
+      ${ck.retorno_cond!=='ok'&&ck.retorno_obs?`<div style="background:#FEF2F2;border-radius:6px;padding:6px 10px;font-size:11px;color:var(--danger)"><i class="ti ti-alert-triangle"></i> <strong>${ck.retorno_cond==='avaria'?'Avaria no retorno':'Abastecimento'}:</strong> ${ck.retorno_obs}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+/* CPFs */
+function renderCPFs(){
+  const el=$('cpf-list-wrap');
+  if(!cpfs.length){el.innerHTML='<div class="empty"><i class="ti ti-id-badge-2"></i><h4>Nenhum CPF cadastrado</h4><p>Cadastre os motoristas autorizados</p></div>';return}
+  el.innerHTML=cpfs.map(c=>`<div class="cpf-row"><div><div class="cpf-num">${c.cpf}</div><div class="cpf-nome">${c.nome} ${c.departamento?'· '+c.departamento:''} ${c.data_assinatura?'· Assinou em '+fmt(c.data_assinatura):''}</div></div><div style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" onclick="editarCPF(${c.id})"><i class="ti ti-edit"></i></button><button class="btn btn-danger btn-sm" onclick="delCPF(${c.id})"><i class="ti ti-trash"></i></button></div></div>`).join('');
+}
+function abrirCPFModal(){$('cpf-modal-tit').textContent='Cadastrar CPF autorizado';$('cpf-f-id').value='';$('cpf-f-num').value='';$('cpf-f-nome').value='';$('cpf-f-dep').value='';$('cpf-f-data').value=TODAY;$('cpf-f-obs').value='';ov('ov-cpf');}
+function editarCPF(id){const c=cpfs.find(x=>x.id===id);$('cpf-modal-tit').textContent='Editar CPF';$('cpf-f-id').value=id;$('cpf-f-num').value=c.cpf;$('cpf-f-nome').value=c.nome;$('cpf-f-dep').value=c.departamento||'';$('cpf-f-data').value=c.data_assinatura||'';$('cpf-f-obs').value=c.observacoes||'';ov('ov-cpf');}
+async function salvarCPF(){
+  const id=$('cpf-f-id').value;
+  const cpfNum=$('cpf-f-num').value.trim();
+  const nome=$('cpf-f-nome').value.trim();
+  if(!cpfNum||!nome){toast('CPF e nome são obrigatórios.','err');return}
+  if(!validCPF(cpfNum)){toast('CPF inválido.','err');return}
+  const data={cpf:cpfNum,nome,departamento:$('cpf-f-dep').value.trim(),data_assinatura:$('cpf-f-data').value||null,observacoes:$('cpf-f-obs').value.trim()};
+  const{error}=id?await SB.from('cpfs_autorizados').update(data).eq('id',id):await SB.from('cpfs_autorizados').insert([data]).select();
+  if(error){toast('Erro: '+(error.message||error.code),'err');console.error(error);return}
+  cov('ov-cpf');await loadData();renderCPFs();toast(id?'CPF atualizado!':'CPF cadastrado!','ok');
+}
+async function delCPF(id){const c=cpfs.find(x=>x.id===id);if(!confirm(`Remover CPF de "${c?.nome}"? Essa pessoa não poderá mais acessar o sistema.`))return;const{error}=await SB.from('cpfs_autorizados').delete().eq('id',id);if(error){toast('Erro','err');return}await loadData();renderCPFs();toast('CPF removido.','info');}
+
+/* EXPORT */
+function expCSV(vid){const v=veiculos.find(x=>x.id==vid);const rows=reservas.filter(r=>r.veiculo_id==vid).map(r=>`${r.id},"${v?.nome}","${v?.placa}","${r.departamento}","${r.responsavel}","${fmt(r.data_saida)}","${r.hora_saida||''}","${r.hora_retorno||''}","${r.destino}","${r.status}"`);dl(['ID,Veiculo,Placa,Departamento,Responsavel,Data,HoraSaida,HoraRetorno,Destino,Status',...rows].join('\n'),`relatorio_${v?.nome?.replace(/ /g,'_')}.csv`,'text/csv');}
+function expTXT(vid){const v=veiculos.find(x=>x.id==vid);let t=`RELATÓRIO — ${v?.nome} (${v?.placa})\n${'='.repeat(48)}\n`;reservas.filter(r=>r.veiculo_id==vid).forEach(r=>{t+=`${fmt(r.data_saida)} ${r.hora_saida||''}→${r.hora_retorno||''} | ${r.responsavel} | ${r.destino} | ${r.status}\n`;});dl(t,`relatorio_${v?.nome?.replace(/ /g,'_')}.txt`,'text/plain');}
+function dl(c,n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();}
+
+/* ============================================================
+   LAVAGEM
+============================================================ */
+const CPF_FACILITIES = '358.595.538-03';
+let lavagens = [];
+
+async function loadLavagens(){
+  try{
+    const {data,error} = await SB.from('lavagens').select('*').order('data_agendada', {ascending:false});
+    if(error) console.error('loadLavagens:', error);
+    lavagens = data || [];
+  }catch(e){console.error(e);}
+}
+
+async function loadDataFull(){
+  await Promise.all([loadData(), loadLavagens()]);
+}
+
+function initLavSec(){
+  const isFac = currentUser && cleanCPF(currentUser.cpf) === cleanCPF(CPF_FACILITIES);
+  const isAdmUser = adminLogado;
+  $('lav-sec').style.display = (isFac || isAdmUser) ? 'block' : 'none';
+  if(isFac || isAdmUser){
+    const s = $('lv-vei');
+    if(s && s.options.length <= 1){
+      s.innerHTML = '<option value="">Selecione o veículo</option>';
+      veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome+' ('+v.placa+')';s.appendChild(o);});
+    }
+    $('lv-data').value = TODAY;
+    $('lv-hora').value = NOW;
+  }
+}
+
+function limparLav(){
+  ['lv-obs'].forEach(id=>$(id).value='');
+  $('lv-data').value=TODAY;$('lv-hora').value=NOW;
+}
+
+async function agendarLavagem(){
+  const vid = $('lv-vei').value;
+  const data = $('lv-data').value;
+  const hora = $('lv-hora').value;
+  const tipo = $('lv-tipo').value;
+  const obs  = $('lv-obs').value.trim();
+  if(!vid||!data||!hora){toast('Selecione veículo, data e horário.','err');return}
+  const v = veiculos.find(x=>x.id==vid);
+  const {error} = await SB.from('lavagens').insert([{
+    veiculo_id: vid,
+    agendado_por: currentUser?.nome || '—',
+    agendado_cpf: currentUser?.cpf || '—',
+    data_agendada: data,
+    hora_agendada: hora,
+    tipo_lavagem: tipo,
+    observacoes: obs,
+    status: 'pendente',
+    criado_em: new Date().toISOString()
+  }]).select();
+  if(error){toast('Erro: '+(error.message||error.code),'err');console.error(error);return}
+  await loadLavagens();
+  toast('✓ Lavagem agendada! O administrador irá confirmar após a conclusão.','ok');
+  limparLav();
+  if(adminLogado) renderLavAdm();
+}
+
+/* ADMIN: lista lavagens */
+function renderLavAdm(){
+  const fv=$('lavf-vei')?.value, fs=$('lavf-st')?.value;
+  if(!$('lavf-vei').options.length||$('lavf-vei').options.length===1)
+    veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome;$('lavf-vei').appendChild(o);});
+  let list=[...lavagens];
+  if(fv)list=list.filter(l=>l.veiculo_id==fv);
+  if(fs)list=list.filter(l=>l.status===fs);
+  const el=$('lav-adm-list');
+  if(!list.length){el.innerHTML='<div class="empty"><i class="ti ti-droplet-off"></i><h4>Nenhuma lavagem</h4></div>';return}
+  el.innerHTML=list.map(l=>{
+    const v=veiculos.find(x=>x.id===l.veiculo_id);
+    const hist=lavagens.filter(x=>x.veiculo_id===l.veiculo_id&&x.status==='confirmado');
+    const tipoLabel={simples:'Simples',completa:'Completa',polimento:'Polimento',higienizacao:'Higienização'};
+    return`<div class="lav-card">
+      <div class="lav-top">
+        <div>
+          <div class="lav-vname"><i class="ti ti-droplet" style="color:#0EA5E9"></i> ${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></div>
+          <div class="lav-vsub">${fmt(l.data_agendada)} às ${l.hora_agendada} · ${tipoLabel[l.tipo_lavagem]||l.tipo_lavagem} · Agendado por: ${l.agendado_por}</div>
+        </div>
+        <span class="lav-badge ${l.status==='confirmado'?'lav-conf':'lav-pend'}">${l.status==='confirmado'?'✅ Confirmado':'⏳ Pendente'}</span>
+      </div>
+      ${l.status==='pendente'?`<div class="lav-body">
+        ${l.observacoes?`<div style="font-size:12px;color:var(--gray-500);margin-bottom:10px"><i class="ti ti-notes"></i> ${l.observacoes}</div>`:''}
+        <div style="display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn btn-danger btn-sm" onclick="delLavagem(${l.id})"><i class="ti ti-trash"></i>Cancelar</button>
+          <button class="btn btn-g btn-sm" onclick="abrirConfLav(${l.id})"><i class="ti ti-check"></i>Confirmar lavagem</button>
+        </div>
+      </div>`:''}
+      ${l.status==='confirmado'?`<div class="lav-body" style="background:var(--green-l)">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px">
+          <div><span style="color:var(--gray-400)">Concluída em:</span><br><strong>${fmt(l.data_confirmada)} ${l.hora_confirmada||''}</strong></div>
+          <div><span style="color:var(--gray-400)">Realizada por:</span><br><strong>${l.confirmado_por||'—'}</strong></div>
+          <div><span style="color:var(--gray-400)">Total do veículo:</span><br><strong>${hist.length} lavagem${hist.length!==1?'s':''}</strong></div>
+        </div>
+        ${l.obs_confirmacao?`<div style="font-size:12px;color:var(--green2);margin-top:8px"><i class="ti ti-notes"></i> ${l.obs_confirmacao}</div>`:''}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function abrirConfLav(id){
+  const l=lavagens.find(x=>x.id===id);
+  const v=veiculos.find(x=>x.id===l.veiculo_id);
+  $('lc-id').value=id;
+  $('lc-vei').value=(v?.nome||'?')+' ('+( v?.placa||'')+')';
+  $('lc-data').value=TODAY;$('lc-hora').value=NOW;
+  $('lc-resp').value='';$('lc-obs').value='';
+  ov('ov-lav-conf');
+}
+
+async function confirmarLavagem(){
+  const id=parseInt($('lc-id').value);
+  const{error}=await SB.from('lavagens').update({
+    status:'confirmado',
+    data_confirmada:$('lc-data').value,
+    hora_confirmada:$('lc-hora').value,
+    confirmado_por:$('lc-resp').value.trim(),
+    obs_confirmacao:$('lc-obs').value.trim()
+  }).eq('id',id);
+  if(error){toast('Erro: '+(error.message),'err');return}
+  cov('ov-lav-conf');await loadLavagens();renderLavAdm();renderLavStats();toast('✓ Lavagem confirmada!','ok');
+}
+
+async function delLavagem(id){
+  if(!confirm('Cancelar este agendamento de lavagem?'))return;
+  const{error}=await SB.from('lavagens').delete().eq('id',id);
+  if(error){toast('Erro','err');return}
+  await loadLavagens();renderLavAdm();toast('Agendamento cancelado.','info');
+}
+
+/* Painel de estatísticas por veículo no relatório */
+function renderLavStats(){
+  const el=document.getElementById('lav-stats-panel');
+  if(!el)return;
+  el.innerHTML=veiculos.map(v=>{
+    const hist=lavagens.filter(l=>l.veiculo_id===v.id&&l.status==='confirmado');
+    const ultima=hist[0];
+    return`<div class="lav-stat-box">
+      <div style="font-family:var(--fh);font-size:13px;font-weight:600;color:var(--gray-900);margin-bottom:4px">${v.nome}</div>
+      <div class="lav-count-badge">${hist.length}</div>
+      <div style="font-size:10px;color:var(--gray-400);margin-top:2px">lavagens</div>
+      ${ultima?`<div style="font-size:11px;color:var(--gray-500);margin-top:5px">Última: ${fmt(ultima.data_confirmada)}</div>`:'<div style="font-size:11px;color:var(--gray-300);margin-top:5px">Nenhuma ainda</div>'}
+    </div>`;
+  }).join('');
+}
+
+</script>
+
+<!-- MODAL CONFIRMAR LAVAGEM -->
+<div class="ov" id="ov-lav-conf">
+  <div class="modal">
+    <div class="mhdr" style="background:linear-gradient(120deg,#075985,#0EA5E9)"><h3><i class="ti ti-droplet-check"></i> Confirmar lavagem</h3><button class="xbtn" onclick="cov('ov-lav-conf')"><i class="ti ti-x"></i></button></div>
+    <div class="mbody">
+      <div class="alert a-ok" style="margin-bottom:12px"><i class="ti ti-check"></i> Confirme que a lavagem foi realizada</div>
+      <div class="fg"><label class="flbl">Veículo</label><input class="fi" id="lc-vei" readonly></div>
+      <div class="g2">
+        <div class="fg"><label class="flbl">Data de conclusão</label><input type="date" class="fi" id="lc-data"></div>
+        <div class="fg"><label class="flbl">Hora de conclusão</label><input type="time" class="fi" id="lc-hora"></div>
+      </div>
+      <div class="fg"><label class="flbl">Realizada por / Local</label><input class="fi" id="lc-resp" placeholder="Ex: Lava-rápido Central"></div>
+      <div class="fg"><label class="flbl">Observações pós-lavagem</label><textarea class="fi" id="lc-obs" rows="2" style="resize:vertical" placeholder="Condição do veículo, pendências…"></textarea></div>
+      <input type="hidden" id="lc-id">
+    </div>
+    <div class="mftr">
+      <button class="btn btn-ghost" onclick="cov('ov-lav-conf')">Cancelar</button>
+      <button class="btn btn-g" onclick="confirmarLavagem()"><i class="ti ti-check"></i> Confirmar lavagem</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
