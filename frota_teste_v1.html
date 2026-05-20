@@ -922,7 +922,7 @@ async function salvarRetorno(){
 
 /* ADMIN */
 function toggleAdmin(){if(adminLogado){fecharAdmin();return}$('admin-panel').style.display='block';$('admin-login-wrap').style.display='block';$('admin-tabs-wrap').style.display='none';$('admin-pwd').value='';$('admin-msg').style.display='none';$('admin-panel').scrollIntoView({behavior:'smooth',block:'start'});}
-function checkPwd(){
+async function checkPwd(){
   if($('admin-pwd').value===ADMIN_PWD){
     adminLogado=true;$('admin-login-wrap').style.display='none';$('admin-tabs-wrap').style.display='block';
     $('admin-btn').classList.add('admin-active');$('admin-lbl').textContent='Admin ativo';
