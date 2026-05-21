@@ -200,7 +200,10 @@ textarea.fi{resize:vertical;min-height:68px}
 .xbtn{background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;transition:var(--t);cursor:pointer}
 .xbtn:hover{background:rgba(255,255,255,.3)}
 
-/* ADMIN PANEL */
+/* ADMIN TOGGLE SWITCH */
+#cpf-f-admin:checked+span{background:var(--green)!important}
+#cpf-f-admin:checked+span::before{transform:translateX(20px)}
+#cpf-admin-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .admin-panel{background:#fff;border-radius:var(--r18);border:2px solid var(--green);box-shadow:var(--sh1);overflow:hidden;margin-bottom:24px}
 .admin-panel-hdr{background:linear-gradient(120deg,var(--green2),var(--green));padding:14px 20px;display:flex;align-items:center;gap:10px}
 .admin-panel-hdr h2{font-family:var(--fh);font-size:14px;font-weight:700;color:#fff}
@@ -652,6 +655,18 @@ tr:hover td{background:var(--gray-50)}
   <div class="fg"><label class="flbl">Telefone / WhatsApp</label><input class="fi" id="cpf-f-tel" placeholder="(11) 99999-0000" maxlength="15" oninput="maskTel(this)"></div>
   <div class="fg"><label class="flbl">Data de assinatura do termo</label><input type="date" class="fi" id="cpf-f-data"></div>
   <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="cpf-f-obs" rows="2" style="resize:vertical" placeholder="CNH, vencimento, restrições…"></textarea></div>
+  <div id="cpf-admin-row" style="display:none;margin-top:4px">
+    <div style="background:linear-gradient(120deg,var(--blue-xl),#E8F5E9);border:1.5px solid var(--green);border-radius:var(--r10);padding:13px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-family:var(--fh);font-size:12px;font-weight:700;color:var(--green2);display:flex;align-items:center;gap:6px"><i class="ti ti-shield-check"></i> Permissão de Administrador</div>
+        <div style="font-size:11px;color:var(--gray-500);margin-top:3px">O usuário terá acesso ao painel admin automaticamente ao fazer login.</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0">
+        <input type="checkbox" id="cpf-f-admin" style="opacity:0;width:0;height:0">
+        <span onclick="this.previousElementSibling.click()" style="position:absolute;cursor:pointer;inset:0;background:var(--gray-200);border-radius:24px;transition:.2s" id="cpf-admin-slider"></span>
+      </label>
+    </div>
+  </div>
   <input type="hidden" id="cpf-f-id">
 </div>
 <div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-cpf')">Cancelar</button><button class="btn btn-p" onclick="salvarCPF()"><i class="ti ti-check"></i> Salvar</button></div></div></div>
@@ -709,6 +724,7 @@ tr:hover td{background:var(--gray-50)}
 const SB_URL    = 'https://ahbblwxgqudzsxhkqurn.supabase.co';
 const SB_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoYmJsd3hncXVkenN4aGtxdXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDQwMzQsImV4cCI6MjA5NDgyMDAzNH0.RdGLueYYOdFY4-tn_lR_M5E6bEoIlKVg9W6Vi-6HqS0';
 const ADMIN_PWD = 'Alm*x@rif@d*';
+const SUPER_ADMIN_CPF = '42953524894'; // Bruno — único que pode gerenciar admins
 
 /* LOGOS */
 const L1='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zDbLbbmCWqkAdWVjm5Pnf/o0cg5OnMrMkUapr5agZLsw7FKpcOhpnZTc57UREUJT0RERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERF//Z';
@@ -841,6 +857,18 @@ function aplicarSessao(found){
   $('rv-data').value=TODAY;
   $('rv-hora-saida').value=NOW;
   $('rv-hora-ret').value=NOW;
+  // Ativa admin automaticamente se o usuário tem is_admin=true
+  if(found.is_admin){
+    adminLogado=true;
+    localStorage.setItem('frota_admin','1');
+    $('admin-panel').style.display='block';
+    $('admin-login-wrap').style.display='none';
+    $('admin-tabs-wrap').style.display='block';
+    $('admin-btn').classList.add('admin-active');
+    $('admin-lbl').textContent='Admin ativo';
+    renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
+    loadLavagens().then(()=>{renderLavAdm();initLavSec();});
+  }
 }
 
 function doLogout(){currentUser=null;adminLogado=false;localStorage.removeItem('frota_cpf');localStorage.removeItem('frota_admin');$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';$('cpf-input').value='';$('login-msg').style.display='none';$('s-app').classList.remove('on');$('s-login').classList.add('on');}
@@ -1296,21 +1324,61 @@ function renderCkAdm(){
 /* CPFs */
 function renderCPFs(){
   const el=$('cpf-list-wrap');
+  const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
   if(!cpfs.length){el.innerHTML='<div class="empty"><i class="ti ti-id-badge-2"></i><h4>Nenhum CPF cadastrado</h4><p>Cadastre os motoristas autorizados</p></div>';return}
-  el.innerHTML=cpfs.map(c=>`<div class="cpf-row"><div><div class="cpf-num">${c.cpf}</div><div class="cpf-nome">${c.nome} ${c.departamento?'· '+c.departamento:''} ${c.telefone?'· <i class="ti ti-brand-whatsapp" style="color:#25D366"></i> '+c.telefone:''} ${c.data_assinatura?'· Assinou em '+fmt(c.data_assinatura):''}</div></div><div style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" onclick="editarCPF(${c.id})"><i class="ti ti-edit"></i></button><button class="btn btn-danger btn-sm" onclick="delCPF(${c.id})"><i class="ti ti-trash"></i></button></div></div>`).join('');
+  el.innerHTML=cpfs.map(c=>{
+    const isAdmin=!!c.is_admin;
+    const isSelf=cleanCPF(c.cpf)===SUPER_ADMIN_CPF;
+    const adminBadge=isAdmin?`<span style="display:inline-flex;align-items:center;gap:3px;background:linear-gradient(120deg,var(--green2),var(--green));color:#fff;font-size:9px;font-weight:700;font-family:var(--fh);padding:2px 7px;border-radius:20px;letter-spacing:.3px"><i class="ti ti-shield-check"></i>ADMIN</span>`:'';
+    const toggleBtn=isSuperAdmin&&!isSelf?`<button class="btn btn-sm ${isAdmin?'btn-warn':'btn-g'}" onclick="toggleAdmin_CPF(${c.id})" title="${isAdmin?'Remover permissão de admin':'Conceder permissão de admin'}" style="padding:3px 9px;font-size:10px"><i class="ti ${isAdmin?'ti-shield-off':'ti-shield-plus'}"></i>${isAdmin?'Revogar':'Tornar admin'}</button>`:'';
+    return`<div class="cpf-row"><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><div><div class="cpf-num" style="display:flex;align-items:center;gap:6px">${c.cpf} ${adminBadge}</div><div class="cpf-nome">${c.nome} ${c.departamento?'· '+c.departamento:''} ${c.telefone?'· <i class="ti ti-brand-whatsapp" style="color:#25D366"></i> '+c.telefone:''} ${c.data_assinatura?'· Assinou em '+fmt(c.data_assinatura):''}</div></div></div><div style="display:flex;gap:5px;flex-shrink:0;align-items:center">${toggleBtn}<button class="btn btn-ghost btn-sm" onclick="editarCPF(${c.id})"><i class="ti ti-edit"></i></button><button class="btn btn-danger btn-sm" onclick="delCPF(${c.id})"><i class="ti ti-trash"></i></button></div></div>`;
+  }).join('');
 }
-function abrirCPFModal(){$('cpf-modal-tit').textContent='Cadastrar CPF autorizado';$('cpf-f-id').value='';$('cpf-f-num').value='';$('cpf-f-nome').value='';$('cpf-f-dep').value='';$('cpf-f-tel').value='';$('cpf-f-data').value=TODAY;$('cpf-f-obs').value='';ov('ov-cpf');}
-function editarCPF(id){const c=cpfs.find(x=>x.id===id);$('cpf-modal-tit').textContent='Editar CPF';$('cpf-f-id').value=id;$('cpf-f-num').value=c.cpf;$('cpf-f-nome').value=c.nome;$('cpf-f-dep').value=c.departamento||'';$('cpf-f-tel').value=c.telefone||'';$('cpf-f-data').value=c.data_assinatura||'';$('cpf-f-obs').value=c.observacoes||'';ov('ov-cpf');}
+function abrirCPFModal(){
+  const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
+  $('cpf-modal-tit').textContent='Cadastrar CPF autorizado';
+  $('cpf-f-id').value='';$('cpf-f-num').value='';$('cpf-f-nome').value='';$('cpf-f-dep').value='';$('cpf-f-tel').value='';$('cpf-f-data').value=TODAY;$('cpf-f-obs').value='';
+  $('cpf-f-admin').checked=false;
+  $('cpf-admin-row').style.display=isSuperAdmin?'block':'none';
+  ov('ov-cpf');
+}
+function editarCPF(id){
+  const c=cpfs.find(x=>x.id===id);
+  const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
+  const isSelf=cleanCPF(c.cpf)===SUPER_ADMIN_CPF;
+  $('cpf-modal-tit').textContent='Editar CPF';
+  $('cpf-f-id').value=id;$('cpf-f-num').value=c.cpf;$('cpf-f-nome').value=c.nome;$('cpf-f-dep').value=c.departamento||'';$('cpf-f-tel').value=c.telefone||'';$('cpf-f-data').value=c.data_assinatura||'';$('cpf-f-obs').value=c.observacoes||'';
+  $('cpf-f-admin').checked=!!c.is_admin;
+  // Mostra toggle só para o super admin, e não para editar o próprio cadastro do super admin
+  $('cpf-admin-row').style.display=(isSuperAdmin&&!isSelf)?'block':'none';
+  ov('ov-cpf');
+}
 async function salvarCPF(){
   const id=$('cpf-f-id').value;
   const cpfNum=$('cpf-f-num').value.trim();
   const nome=$('cpf-f-nome').value.trim();
   if(!cpfNum||!nome){toast('CPF e nome são obrigatórios.','err');return}
   if(!validCPF(cpfNum)){toast('CPF inválido.','err');return}
+  const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
+  const isSelf=cleanCPF(cpfNum)===SUPER_ADMIN_CPF;
   const data={cpf:cpfNum,nome,departamento:$('cpf-f-dep').value.trim(),telefone:$('cpf-f-tel').value.trim()||null,data_assinatura:$('cpf-f-data').value||null,observacoes:$('cpf-f-obs').value.trim()};
+  // Só inclui is_admin se for super admin editando outro usuário
+  if(isSuperAdmin&&!isSelf) data.is_admin=$('cpf-f-admin').checked;
   const{error}=id?await SB.from('cpfs_autorizados').update(data).eq('id',id):await SB.from('cpfs_autorizados').insert([data]).select();
   if(error){toast('Erro: '+(error.message||error.code),'err');console.error(error);return}
   cov('ov-cpf');await loadData();renderCPFs();toast(id?'CPF atualizado!':'CPF cadastrado!','ok');
+}
+async function toggleAdmin_CPF(id){
+  if(cleanCPF(currentUser?.cpf||'')!==SUPER_ADMIN_CPF){toast('Sem permissão.','err');return}
+  const c=cpfs.find(x=>x.id===id);
+  if(!c)return;
+  const novoStatus=!c.is_admin;
+  const acao=novoStatus?'conceder permissão de administrador':'revogar a permissão de administrador';
+  if(!confirm(`Deseja ${acao} para ${c.nome}?`))return;
+  const{error}=await SB.from('cpfs_autorizados').update({is_admin:novoStatus}).eq('id',id);
+  if(error){toast('Erro: '+(error.message||error.code),'err');return}
+  await loadData();renderCPFs();
+  toast(novoStatus?`✓ ${c.nome.split(' ')[0]} agora é administrador.`:`${c.nome.split(' ')[0]} não é mais administrador.`,novoStatus?'ok':'info');
 }
 async function delCPF(id){const c=cpfs.find(x=>x.id===id);if(!confirm(`Remover CPF de "${c?.nome}"? Essa pessoa não poderá mais acessar o sistema.`))return;const{error}=await SB.from('cpfs_autorizados').delete().eq('id',id);if(error){toast('Erro','err');return}await loadData();renderCPFs();toast('CPF removido.','info');}
 
