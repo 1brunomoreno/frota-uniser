@@ -1241,9 +1241,9 @@ function renderRel(){
       </div>`;
     }).join(''):`<div style="font-size:13px;color:var(--gray-400);margin-bottom:14px">Nenhum checklist registrado no período.</div>`}
     <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin:12px 0 8px">Ocorrências <button class="btn btn-danger btn-sm" onclick="abrirProb('${v.id}')"><i class="ti ti-plus"></i>Registrar</button></div>
-    ${(v.problemas||[]).length?(v.problemas||[]).map(p=>`<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--r10);padding:10px 13px;margin-bottom:7px"><div style="font-size:10px;font-weight:700;color:var(--danger);text-transform:uppercase;margin-bottom:3px">${p.tipo} — ${fmt(p.data)}</div><div style="font-size:13px">${p.desc}</div><div style="font-size:11px;color:var(--gray-400);margin-top:3px">Por: ${p.resp}</div></div>`).join(''):`<div style="font-size:13px;color:var(--gray-400);margin-bottom:12px">Nenhuma ocorrência.</div>`}
+    ${(v.problemas||[]).length?(v.problemas||[]).map((p,pi)=>`<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--r10);padding:10px 13px;margin-bottom:7px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px"><div style="font-size:10px;font-weight:700;color:var(--danger);text-transform:uppercase">${p.tipo} — ${fmt(p.data)}</div><button class="btn btn-danger btn-sm" style="padding:2px 7px;font-size:10px" onclick="delOcorrencia('${v.id}',${pi})" title="Excluir ocorrência"><i class="ti ti-trash"></i></button></div><div style="font-size:13px">${p.desc}</div><div style="font-size:11px;color:var(--gray-400);margin-top:3px">Por: ${p.resp}</div></div>`).join(''):`<div style="font-size:13px;color:var(--gray-400);margin-bottom:12px">Nenhuma ocorrência.</div>`}
     <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin:12px 0 8px">Manutenções <button class="btn btn-g btn-sm" onclick="abrirManut('${v.id}')"><i class="ti ti-plus"></i>Registrar</button></div>
-    ${(v.manutencoes||[]).length?`<div class="tl">${(v.manutencoes||[]).slice().reverse().map(mn=>`<div class="tli"><div class="tld tl-ok"></div><div style="font-weight:600;font-size:13px">${MTYPE[mn.tipo]||mn.tipo} — ${fmt(mn.data)}</div><div style="font-size:11px;color:var(--gray-400)">Km:${(mn.km||0).toLocaleString('pt-BR')}${mn.proxKm?' · Próx.:'+mn.proxKm.toLocaleString('pt-BR')+' km':''}</div>${mn.obs?`<div style="font-size:11px">${mn.obs}</div>`:''}</div>`).join('')}</div>`:`<div style="font-size:13px;color:var(--gray-400)">Nenhuma.</div>`}
+    ${(v.manutencoes||[]).length?`<div class="tl">${(v.manutencoes||[]).slice().reverse().map((mn,mni)=>{const realIdx=(v.manutencoes||[]).length-1-mni;return`<div class="tli"><div class="tld tl-ok"></div><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-weight:600;font-size:13px">${MTYPE[mn.tipo]||mn.tipo} — ${fmt(mn.data)}</div><div style="font-size:11px;color:var(--gray-400)">Km:${(mn.km||0).toLocaleString('pt-BR')}${mn.proxKm?' · Próx.:'+mn.proxKm.toLocaleString('pt-BR')+' km':''}</div>${mn.obs?`<div style="font-size:11px">${mn.obs}</div>`:''}</div><button class="btn btn-danger btn-sm" style="padding:2px 7px;font-size:10px;flex-shrink:0;margin-left:8px" onclick="delManutencao('${v.id}',${realIdx})" title="Excluir manutenção"><i class="ti ti-trash"></i></button></div></div>`;}).join('')}</div>`:`<div style="font-size:13px;color:var(--gray-400)">Nenhuma.</div>`}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-ghost btn-sm" onclick="expCSV('${v.id}')"><i class="ti ti-download"></i>CSV</button>
       <button class="btn btn-ghost btn-sm" onclick="expTXT('${v.id}')"><i class="ti ti-file-text"></i>TXT</button>
@@ -1253,6 +1253,8 @@ function abrirProb(vid){$('pb-v').value=vid;['pb-d','pb-r'].forEach(id=>$(id).va
 async function salvarProb(){const vid=$('pb-v').value,tipo=$('pb-t').value,desc=$('pb-d').value.trim(),resp=$('pb-r').value.trim();if(!desc||!resp){toast('Preencha descrição e responsável.','err');return}const v=veiculos.find(x=>x.id==vid);const{error}=await SB.from('veiculos').update({problemas:[...(v.problemas||[]),{data:TODAY,tipo,desc,resp}]}).eq('id',vid);if(error){toast('Erro','err');return}cov('ov-prob');await loadData();renderRel();toast('Registrado!','info');}
 function abrirManut(vid){$('mn-v').value=vid;$('mn-d').value=TODAY;['mn-k','mn-p','mn-o'].forEach(id=>$(id).value='');ov('ov-mn');}
 async function salvarManut(){const vid=$('mn-v').value,tipo=$('mn-t').value,data=$('mn-d').value,km=parseInt($('mn-k').value)||0,proxKm=parseInt($('mn-p').value)||null,obs=$('mn-o').value.trim();const v=veiculos.find(x=>x.id==vid);const upd={manutencoes:[...(v.manutencoes||[]),{tipo,data,km,proxKm,obs}]};if(tipo==='oleo'&&data)upd.ultima_troca_oleo=data;if(tipo==='oleo'&&proxKm)upd.proxima_troca_oleo_km=proxKm;if(km>v.km_atual)upd.km_atual=km;const{error}=await SB.from('veiculos').update(upd).eq('id',vid);if(error){toast('Erro','err');return}cov('ov-mn');await loadData();renderRel();toast('Manutenção registrada!','ok');}
+async function delOcorrencia(vid,idx){if(!confirm('Excluir esta ocorrência? Essa ação não pode ser desfeita.'))return;const v=veiculos.find(x=>x.id==vid);const novas=(v.problemas||[]).filter((_,i)=>i!==idx);const{error}=await SB.from('veiculos').update({problemas:novas}).eq('id',vid);if(error){toast('Erro ao excluir','err');return}await loadData();renderRel();toast('Ocorrência excluída.','info');}
+async function delManutencao(vid,idx){if(!confirm('Excluir este registro de manutenção? Essa ação não pode ser desfeita.'))return;const v=veiculos.find(x=>x.id==vid);const novas=(v.manutencoes||[]).filter((_,i)=>i!==idx);const{error}=await SB.from('veiculos').update({manutencoes:novas}).eq('id',vid);if(error){toast('Erro ao excluir','err');return}await loadData();renderRel();toast('Manutenção excluída.','info');}
 
 /* CHECKLIST ADMIN */
 function renderCkAdm(){
@@ -1541,6 +1543,9 @@ function renderLavAdm(){
           <div><span style="color:var(--gray-400)">Total do veículo:</span><br><strong>${hist.length} lavagem${hist.length!==1?'s':''}</strong></div>
         </div>
         ${l.obs_confirmacao?`<div style="font-size:12px;color:var(--green2);margin-top:8px"><i class="ti ti-notes"></i> ${l.obs_confirmacao}</div>`:''}
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn btn-danger btn-sm" onclick="delLavagem(${l.id})"><i class="ti ti-trash"></i>Excluir confirmação</button>
+        </div>
       </div>`:''}
     </div>`;
   }).join('');
@@ -1570,10 +1575,13 @@ async function confirmarLavagem(){
 }
 
 async function delLavagem(id){
-  if(!confirm('Cancelar este agendamento de lavagem?'))return;
+  const l=lavagens.find(x=>x.id===id);
+  const msg=l?.status==='confirmado'?'Excluir este registro de lavagem confirmada? Essa ação não pode ser desfeita.':'Cancelar este agendamento de lavagem?';
+  if(!confirm(msg))return;
   const{error}=await SB.from('lavagens').delete().eq('id',id);
   if(error){toast('Erro','err');return}
-  await loadLavagens();renderLavAdm();toast('Agendamento cancelado.','info');
+  await loadLavagens();renderLavAdm();renderLavStats();
+  toast(l?.status==='confirmado'?'Registro excluído.':'Agendamento cancelado.','info');
 }
 
 /* Painel de estatísticas por veículo no relatório */
