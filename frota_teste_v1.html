@@ -1565,6 +1565,9 @@ function renderLavAdm(){
           <div><span style="color:var(--gray-400)">Total do veículo:</span><br><strong>${hist.length} lavagem${hist.length!==1?'s':''}</strong></div>
         </div>
         ${l.obs_confirmacao?`<div style="font-size:12px;color:var(--green2);margin-top:8px"><i class="ti ti-notes"></i> ${l.obs_confirmacao}</div>`:''}
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn btn-danger btn-sm" onclick="delLavagem(${l.id})"><i class="ti ti-trash"></i> Excluir confirmação</button>
+        </div>
       </div>`:''}
     </div>`;
   }).join('');
