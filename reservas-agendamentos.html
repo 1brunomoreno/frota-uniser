@@ -1563,11 +1563,23 @@ async function salvarCPF(){
   if(!validCPF(cpfNum)){toast('CPF inválido.','err');return}
   const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
   const isSelf=cleanCPF(cpfNum)===SUPER_ADMIN_CPF;
+  // Dados base — sem is_admin por padrão
   const data={cpf:cpfNum,nome,departamento:$('cpf-f-dep').value.trim(),telefone:$('cpf-f-tel').value.trim()||null,data_assinatura:$('cpf-f-data').value||null,observacoes:$('cpf-f-obs').value.trim()};
-  // Só inclui is_admin se for super admin editando outro usuário
-  if(isSuperAdmin&&!isSelf) data.is_admin=$('cpf-f-admin').checked;
-  const{error}=id?await SB.from('cpfs_autorizados').update(data).eq('id',id):await SB.from('cpfs_autorizados').insert([data]).select();
-  if(error){toast('Erro: '+(error.message||error.code),'err');console.error(error);return}
+  // Tenta salvar os dados base primeiro
+  let res=id?await SB.from('cpfs_autorizados').update(data).eq('id',id):await SB.from('cpfs_autorizados').insert([data]).select();
+  if(res.error){toast('Erro: '+(res.error.message||res.error.code),'err');console.error(res.error);return}
+  // Se for super admin, tenta atualizar is_admin separadamente (coluna pode não existir ainda)
+  if(isSuperAdmin&&!isSelf){
+    const adminVal=$('cpf-f-admin').checked;
+    const targetId=id||(res.data?.[0]?.id);
+    if(targetId){
+      const{error:eAdm}=await SB.from('cpfs_autorizados').update({is_admin:adminVal}).eq('id',targetId);
+      if(eAdm&&eAdm.message?.includes('is_admin')){
+        // Coluna ainda não existe — avisa mas não bloqueia o cadastro
+        console.warn('Coluna is_admin não encontrada. Execute: ALTER TABLE cpfs_autorizados ADD COLUMN IF NOT EXISTS is_admin boolean DEFAULT false;');
+      }
+    }
+  }
   cov('ov-cpf');await loadData();renderCPFs();toast(id?'CPF atualizado!':'CPF cadastrado!','ok');
 }
 async function toggleAdmin_CPF(id){
@@ -1578,7 +1590,14 @@ async function toggleAdmin_CPF(id){
   const acao=novoStatus?'conceder permissão de administrador':'revogar a permissão de administrador';
   if(!confirm(`Deseja ${acao} para ${c.nome}?`))return;
   const{error}=await SB.from('cpfs_autorizados').update({is_admin:novoStatus}).eq('id',id);
-  if(error){toast('Erro: '+(error.message||error.code),'err');return}
+  if(error){
+    if(error.message?.includes('is_admin')){
+      toast('A coluna is_admin ainda não existe no banco. Execute o ALTER TABLE no Supabase primeiro.','err');
+    } else {
+      toast('Erro: '+(error.message||error.code),'err');
+    }
+    return;
+  }
   await loadData();renderCPFs();
   toast(novoStatus?`✓ ${c.nome.split(' ')[0]} agora é administrador.`:`${c.nome.split(' ')[0]} não é mais administrador.`,novoStatus?'ok':'info');
 }
