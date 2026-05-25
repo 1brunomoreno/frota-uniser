@@ -550,6 +550,7 @@ tr:hover td{background:var(--gray-50)}
           <div class="atab" id="atb-cpfs" onclick="aTab('cpfs')"><i class="ti ti-id-badge-2"></i> CPFs</div>
           <div class="atab" id="atb-lavagem" onclick="aTab('lavagem')"><i class="ti ti-droplet"></i> Lavagens</div>
           <div class="atab" id="atb-depto" onclick="aTab('depto')"><i class="ti ti-chart-pie"></i> Por Depto</div>
+          <div class="atab" id="atb-senha" onclick="aTab('senha')" style="display:none"><i class="ti ti-key"></i> Senha</div>
         </div>
         <div class="admin-pane on" id="ap-aprov"></div>
         <div class="admin-pane" id="ap-reservas">
@@ -605,6 +606,51 @@ tr:hover td{background:var(--gray-50)}
             <button class="btn btn-p btn-sm" onclick="abrirCPFModal()"><i class="ti ti-plus"></i> Cadastrar CPF</button>
           </div>
           <div id="cpf-list-wrap" style="background:#fff;border-radius:var(--r14);border:1.5px solid var(--gray-200);overflow:hidden"></div>
+        </div>
+
+        <div class="admin-pane" id="ap-senha">
+          <div style="max-width:420px;margin:0 auto;padding:8px 0">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding:14px 16px;background:var(--blue-xl);border-radius:var(--r12);border:1px solid var(--blue3)">
+              <i class="ti ti-shield-lock" style="font-size:22px;color:var(--blue3);flex-shrink:0"></i>
+              <div>
+                <div style="font-family:var(--fh);font-size:13px;font-weight:600;color:var(--blue3)">Alterar senha do Administrador</div>
+                <div style="font-size:12px;color:var(--gray-500);margin-top:2px">Acesso exclusivo do usuário master</div>
+              </div>
+            </div>
+            <div class="fg"><label class="flbl">Senha atual</label>
+              <div style="position:relative">
+                <input type="password" class="fi" id="sp-atual" placeholder="••••••••" style="padding-right:40px">
+                <button onclick="toggleVis('sp-atual','sp-atual-eye')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px"><i class="ti ti-eye" id="sp-atual-eye"></i></button>
+              </div>
+            </div>
+            <div class="fg"><label class="flbl">Nova senha</label>
+              <div style="position:relative">
+                <input type="password" class="fi" id="sp-nova" placeholder="Mínimo 8 caracteres" oninput="checkSenhaForca()" style="padding-right:40px">
+                <button onclick="toggleVis('sp-nova','sp-nova-eye')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px"><i class="ti ti-eye" id="sp-nova-eye"></i></button>
+              </div>
+              <div id="sp-forca-wrap" style="margin-top:6px;display:none">
+                <div style="display:flex;gap:4px;margin-bottom:3px">
+                  <div id="sp-bar-1" style="height:4px;flex:1;border-radius:2px;background:var(--gray-200)"></div>
+                  <div id="sp-bar-2" style="height:4px;flex:1;border-radius:2px;background:var(--gray-200)"></div>
+                  <div id="sp-bar-3" style="height:4px;flex:1;border-radius:2px;background:var(--gray-200)"></div>
+                  <div id="sp-bar-4" style="height:4px;flex:1;border-radius:2px;background:var(--gray-200)"></div>
+                </div>
+                <div id="sp-forca-label" style="font-size:11px;color:var(--gray-400)"></div>
+              </div>
+            </div>
+            <div class="fg"><label class="flbl">Confirmar nova senha</label>
+              <div style="position:relative">
+                <input type="password" class="fi" id="sp-conf" placeholder="Repita a nova senha" oninput="checkSenhaMatch()" style="padding-right:40px">
+                <button onclick="toggleVis('sp-conf','sp-conf-eye')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px"><i class="ti ti-eye" id="sp-conf-eye"></i></button>
+              </div>
+              <div id="sp-match-msg" style="font-size:11px;margin-top:4px;display:none"></div>
+            </div>
+            <div id="sp-err" style="display:none;font-size:12px;color:var(--danger);background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--r8);padding:9px 12px;margin-bottom:8px"></div>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <button class="btn btn-ghost" onclick="limparSenhaForm()"><i class="ti ti-x"></i> Limpar</button>
+              <button class="btn btn-p" style="flex:1" onclick="salvarNovaSenha()"><i class="ti ti-lock-check"></i> Alterar senha</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -800,6 +846,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
         $('admin-lbl').textContent='Admin ativo';
         renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
         loadLavagens().then(()=>{renderLavAdm();initLavSec();});
+        initSenhaTab();
       }
       return;
     }
@@ -869,6 +916,7 @@ function aplicarSessao(found){
     $('admin-lbl').textContent='Admin ativo';
     renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
     loadLavagens().then(()=>{renderLavAdm();initLavSec();});
+    initSenhaTab();
   }
 }
 
@@ -1127,18 +1175,125 @@ async function salvarRetorno(){
 /* ADMIN */
 function toggleAdmin(){if(adminLogado){fecharAdmin();return}$('admin-panel').style.display='block';$('admin-login-wrap').style.display='block';$('admin-tabs-wrap').style.display='none';$('admin-pwd').value='';$('admin-msg').style.display='none';$('admin-panel').scrollIntoView({behavior:'smooth',block:'start'});}
 async function checkPwd(){
-  if($('admin-pwd').value===ADMIN_PWD){
+  if($('admin-pwd').value===getAdminPwd()){
     adminLogado=true;
     localStorage.setItem('frota_admin','1');
     $('admin-login-wrap').style.display='none';$('admin-tabs-wrap').style.display='block';
     $('admin-btn').classList.add('admin-active');$('admin-lbl').textContent='Admin ativo';
     renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
     await loadLavagens();renderLavAdm();initLavSec();
+    initSenhaTab();
     toast('Modo administrador ativado.','ok');
   }else{$('admin-msg').textContent='Senha incorreta.';$('admin-msg').style.display='block';$('admin-pwd').value='';}
 }
 function fecharAdmin(){adminLogado=false;localStorage.removeItem('frota_admin');$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';}
-function aTab(n){['aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem'].forEach(x=>{$('atb-'+x)?.classList.toggle('on',x===n);$('ap-'+x)?.classList.toggle('on',x===n);});if(n==='reservas')renderTodasRes();if(n==='veiculos')renderVeiculosAdm();if(n==='relatorio'){initRelFil();renderRel();}if(n==='checklist')renderCkAdm();if(n==='cpfs')renderCPFs();if(n==='lavagem'){renderLavAdm();renderLavStats();}if(n==='depto'){renderDeptoReport();}}
+function aTab(n){
+  ['aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem','depto','senha'].forEach(x=>{
+    $('atb-'+x)?.classList.toggle('on',x===n);
+    $('ap-'+x)?.classList.toggle('on',x===n);
+  });
+  if(n==='reservas')renderTodasRes();
+  if(n==='veiculos')renderVeiculosAdm();
+  if(n==='relatorio'){initRelFil();renderRel();}
+  if(n==='checklist')renderCkAdm();
+  if(n==='cpfs')renderCPFs();
+  if(n==='lavagem'){renderLavAdm();renderLavStats();}
+  if(n==='depto'){renderDeptoReport();}
+  if(n==='senha'){limparSenhaForm();}
+}
+
+/* SENHA ADMIN — só acessível ao super admin */
+function initSenhaTab(){
+  const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
+  const tab=$('atb-senha');
+  if(tab) tab.style.display=isSuperAdmin?'flex':'none';
+}
+
+function getAdminPwd(){
+  // Usa senha salva no localStorage se existir, senão a padrão do código
+  return localStorage.getItem('frota_admin_pwd')||ADMIN_PWD;
+}
+
+function toggleVis(inputId, iconId){
+  const inp=$(inputId), ico=$(iconId);
+  if(!inp||!ico)return;
+  const isPass=inp.type==='password';
+  inp.type=isPass?'text':'password';
+  ico.className=isPass?'ti ti-eye-off':'ti ti-eye';
+}
+
+function checkSenhaForca(){
+  const v=$('sp-nova').value;
+  const wrap=$('sp-forca-wrap');
+  const lbl=$('sp-forca-label');
+  if(!v){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  let score=0;
+  if(v.length>=8) score++;
+  if(v.length>=12) score++;
+  if(/[A-Z]/.test(v)&&/[a-z]/.test(v)) score++;
+  if(/[0-9]/.test(v)) score++;
+  if(/[^A-Za-z0-9]/.test(v)) score++;
+  const nivel=score<=1?0:score<=2?1:score<=3?2:3;
+  const cores=['#EF4444','#F97316','#EAB308','#22C55E'];
+  const labels=['Muito fraca','Fraca','Média','Forte'];
+  for(let i=1;i<=4;i++){
+    const b=$('sp-bar-'+i);
+    b.style.background=i<=nivel+1?cores[nivel]:'var(--gray-200)';
+  }
+  lbl.textContent='Força: '+labels[nivel];
+  lbl.style.color=cores[nivel];
+  checkSenhaMatch();
+}
+
+function checkSenhaMatch(){
+  const nova=$('sp-nova').value;
+  const conf=$('sp-conf').value;
+  const msg=$('sp-match-msg');
+  if(!conf){msg.style.display='none';return;}
+  msg.style.display='block';
+  if(nova===conf){
+    msg.textContent='✓ Senhas coincidem';
+    msg.style.color='var(--green)';
+  } else {
+    msg.textContent='✗ Senhas não coincidem';
+    msg.style.color='var(--danger)';
+  }
+}
+
+function limparSenhaForm(){
+  ['sp-atual','sp-nova','sp-conf'].forEach(id=>{
+    const el=$(id); if(el){el.value='';el.type='password';}
+  });
+  ['sp-atual-eye','sp-nova-eye','sp-conf-eye'].forEach(id=>{
+    const el=$(id); if(el) el.className='ti ti-eye';
+  });
+  const fw=$('sp-forca-wrap'); if(fw) fw.style.display='none';
+  const mm=$('sp-match-msg'); if(mm) mm.style.display='none';
+  const err=$('sp-err'); if(err) err.style.display='none';
+}
+
+function salvarNovaSenha(){
+  const atual=$('sp-atual').value;
+  const nova=$('sp-nova').value;
+  const conf=$('sp-conf').value;
+  const err=$('sp-err');
+
+  const showErr=(msg)=>{err.textContent=msg;err.style.display='block';};
+  err.style.display='none';
+
+  // Validações
+  if(!atual||!nova||!conf){showErr('Preencha todos os campos.');return;}
+  if(atual!==getAdminPwd()){showErr('Senha atual incorreta.');$('sp-atual').value='';$('sp-atual').focus();return;}
+  if(nova.length<8){showErr('A nova senha deve ter pelo menos 8 caracteres.');return;}
+  if(nova===atual){showErr('A nova senha deve ser diferente da senha atual.');return;}
+  if(nova!==conf){showErr('A confirmação não coincide com a nova senha.');return;}
+
+  // Salva
+  localStorage.setItem('frota_admin_pwd', nova);
+  limparSenhaForm();
+  toast('✓ Senha alterada com sucesso!','ok');
+}
 
 /* APROVAÇÕES */
 function renderAprov(){
