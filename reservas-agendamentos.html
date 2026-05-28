@@ -1246,16 +1246,18 @@ function toggleObsSaida(){
 
   // Reset checklist ao mudar condição
   ['pneu','fluidos','limpeza'].forEach(id=>{
-    $('sd-ck-'+id).checked=false;
-    const lbl=$('sd-ck-'+id+'-lbl'); if(lbl) lbl.style.background='';
+    const cb=$('sd-ck-'+id);
+    cb.checked=false;
+    cb.disabled=avaria;
+    const lbl=$('sd-ck-'+id+'-lbl');
+    if(lbl){
+      lbl.style.background='';
+      lbl.style.cursor=avaria?'not-allowed':'pointer';
+      lbl.style.opacity=avaria?'0.45':'1';
+    }
   });
   const ckAviso=$('sd-ck-aviso'); if(ckAviso) ckAviso.style.display='none';
   const obsAviso=$('sd-obs-aviso'); if(obsAviso) obsAviso.style.display='none';
-
-  // Checklist: obrigatório apenas se BOAS CONDIÇÕES
-  // Observações: obrigatório apenas se AVARIA
-  const ckWrap=document.querySelector('#ov-saida .ck-wrap');
-  if(ckWrap) ckWrap.style.opacity=avaria?'0.45':'1';
 
   // Label observações
   const lbl=$('sd-obs-label');
@@ -1284,8 +1286,9 @@ function abrirSaida(rid){
   $('sd-cond').value='ok';$('sd-obs').value='';
   // Reset checklist
   ['pneu','fluidos','limpeza'].forEach(id=>{
-    $('sd-ck-'+id).checked=false;
-    const lbl=$('sd-ck-'+id+'-lbl'); if(lbl) lbl.style.background='';
+    const cb=$('sd-ck-'+id); cb.checked=false; cb.disabled=false;
+    const lbl=$('sd-ck-'+id+'-lbl');
+    if(lbl){lbl.style.background='';lbl.style.cursor='pointer';lbl.style.opacity='1';}
   });
   const av=$('sd-ck-aviso'); if(av) av.style.display='none';
   const ov2=$('sd-obs-aviso'); if(ov2) ov2.style.display='none';
