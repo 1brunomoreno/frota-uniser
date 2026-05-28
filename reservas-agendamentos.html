@@ -789,8 +789,11 @@ tr:hover td{background:var(--gray-50)}
   <div class="fg"><label class="flbl">Km na saída <span style="color:var(--danger)">*</span></label><input type="number" class="fi" id="sd-km" placeholder="Obrigatório"></div>
 
   <!-- CHECKLIST DE ITENS -->
-  <div style="margin-bottom:4px">
-    <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Checklist de saída <span style="color:var(--danger)">*</span></div>
+  <div class="fg ck-wrap">
+    <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">
+      Checklist de saída <span id="sd-ck-asterisk" style="color:var(--danger)">*</span>
+      <span id="sd-ck-hint" style="font-size:9px;font-weight:400;color:var(--gray-400);text-transform:none;letter-spacing:0;margin-left:4px">(obrigatório se boas condições)</span>
+    </div>
     <div style="background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:var(--r10);overflow:hidden">
       <label id="sd-ck-pneu-lbl" style="display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;border-bottom:1px solid var(--gray-200)">
         <input type="checkbox" id="sd-ck-pneu" onchange="validarChecklistSaida()" style="width:17px;height:17px;accent-color:var(--green);flex-shrink:0">
@@ -1240,18 +1243,38 @@ function ckCard(r){
 
 function toggleObsSaida(){
   const avaria=$('sd-cond').value==='avaria';
+
+  // Reset checklist ao mudar condição
+  ['pneu','fluidos','limpeza'].forEach(id=>{
+    $('sd-ck-'+id).checked=false;
+    const lbl=$('sd-ck-'+id+'-lbl'); if(lbl) lbl.style.background='';
+  });
+  const ckAviso=$('sd-ck-aviso'); if(ckAviso) ckAviso.style.display='none';
+  const obsAviso=$('sd-obs-aviso'); if(obsAviso) obsAviso.style.display='none';
+
+  // Checklist: obrigatório apenas se BOAS CONDIÇÕES
+  // Observações: obrigatório apenas se AVARIA
+  const ckWrap=document.querySelector('#ov-saida .ck-wrap');
+  if(ckWrap) ckWrap.style.opacity=avaria?'0.45':'1';
+
+  // Label observações
   const lbl=$('sd-obs-label');
-  if(lbl) lbl.innerHTML=avaria?'Observações <span style="color:var(--danger)">*</span> <span style="font-size:10px;color:var(--danger)">(obrigatório para avarias)</span>':'Observações';
-  const av=$('sd-obs-aviso'); if(av) av.style.display='none';
+  if(lbl) lbl.innerHTML=avaria
+    ? 'Observações <span style="color:var(--danger)">*</span> <span style="font-size:10px;color:var(--danger)">(obrigatório para avarias)</span>'
+    : 'Observações <span style="font-size:10px;color:var(--gray-400)">(opcional)</span>';
+
+  // Limpa obs ao trocar condição
+  $('sd-obs').value='';
 }
 function validarChecklistSaida(){
-  const todos=$('sd-ck-pneu').checked&&$('sd-ck-fluidos').checked&&$('sd-ck-limpeza').checked;
-  // Feedback visual em cada item
+  const avaria=$('sd-cond').value==='avaria';
+  if(avaria) return; // checklist não obrigatório se avaria
   ['pneu','fluidos','limpeza'].forEach(id=>{
     const lbl=$('sd-ck-'+id+'-lbl');
     if(lbl) lbl.style.background=$('sd-ck-'+id).checked?'rgba(22,163,74,.07)':'';
   });
-  const av=$('sd-ck-aviso'); if(av) av.style.display=todos?'none':'none'; // só mostra ao tentar salvar
+  const todos=$('sd-ck-pneu').checked&&$('sd-ck-fluidos').checked&&$('sd-ck-limpeza').checked;
+  const av=$('sd-ck-aviso'); if(av) av.style.display=todos?'none':'none';
 }
 function abrirSaida(rid){
   const r=reservas.find(x=>x.id===rid);const v=veiculos.find(x=>x.id===r.veiculo_id);
@@ -1274,29 +1297,35 @@ async function salvarSaida(){
   const km=parseInt($('sd-km').value);
   const cond=$('sd-cond').value;
   const obs=$('sd-obs').value.trim();
+  const avaria=cond==='avaria';
 
-  // Validação KM obrigatório
+  // KM obrigatório
   if(!km){toast('Informe o Km de saída.','err');$('sd-km').focus();return}
 
-  // Validação checklist obrigatório
+  if(!avaria){
+    // BOAS CONDIÇÕES → checklist obrigatório, obs opcional
+    const ckPneu=$('sd-ck-pneu').checked;
+    const ckFluidos=$('sd-ck-fluidos').checked;
+    const ckLimpeza=$('sd-ck-limpeza').checked;
+    if(!ckPneu||!ckFluidos||!ckLimpeza){
+      const av=$('sd-ck-aviso'); if(av) av.style.display='block';
+      if(!ckPneu){const l=$('sd-ck-pneu-lbl');if(l)l.style.background='#FEF2F2';}
+      if(!ckFluidos){const l=$('sd-ck-fluidos-lbl');if(l)l.style.background='#FEF2F2';}
+      if(!ckLimpeza){const l=$('sd-ck-limpeza-lbl');if(l)l.style.background='#FEF2F2';}
+      toast('Confirme todos os itens do checklist.','err');return;
+    }
+  } else {
+    // AVARIA → obs obrigatório, checklist não obrigatório
+    if(!obs){
+      const av=$('sd-obs-aviso'); if(av) av.style.display='block';
+      $('sd-obs').focus();
+      toast('Descreva a avaria nas observações.','err');return;
+    }
+  }
+
   const ckPneu=$('sd-ck-pneu').checked;
   const ckFluidos=$('sd-ck-fluidos').checked;
   const ckLimpeza=$('sd-ck-limpeza').checked;
-  if(!ckPneu||!ckFluidos||!ckLimpeza){
-    const av=$('sd-ck-aviso'); if(av) av.style.display='block';
-    // Destaca os itens não marcados
-    if(!ckPneu){const l=$('sd-ck-pneu-lbl');if(l)l.style.background='#FEF2F2';}
-    if(!ckFluidos){const l=$('sd-ck-fluidos-lbl');if(l)l.style.background='#FEF2F2';}
-    if(!ckLimpeza){const l=$('sd-ck-limpeza-lbl');if(l)l.style.background='#FEF2F2';}
-    toast('Confirme todos os itens do checklist.','err');return;
-  }
-
-  // Validação observações obrigatória se avaria
-  if(cond==='avaria'&&!obs){
-    const av=$('sd-obs-aviso'); if(av) av.style.display='block';
-    $('sd-obs').focus();
-    toast('Descreva a avaria nas observações.','err');return;
-  }
 
   const r=reservas.find(x=>x.id===rid);
   const ck={...(r.checklist||{}),
