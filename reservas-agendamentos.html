@@ -1072,11 +1072,19 @@ function renderRvVeiculos(){$('rv-vei').innerHTML=veiculos.filter(v=>v.status!==
 function limparRv(){['rv-dep','rv-tel','rv-dst','rv-obs'].forEach(id=>$(id).value='');$('rv-data').value=TODAY;$('rv-hora-saida').value=NOW;$('rv-hora-ret').value=NOW;const m=$('rv-conflict-msg');if(m){m.style.display='none';}const r=$('rv-rodizio-msg');if(r){r.style.display='none';}const b=$('rv-submit-btn');if(b){b.disabled=false;b.style.opacity='';}}
 
 /* Mapa de rodízio: placa (últimos dígitos ou nome do veículo) → dia da semana (0=Dom,1=Seg,2=Ter,3=Qua,4=Qui,5=Sex,6=Sáb) */
-const RODIZIO_MAP = {
-  'Montana':  { dia: 1, diaLabel: 'segunda-feira',  cor: '#1D4ED8', fundo: '#EFF6FF', borda: '#BFDBFE' }, // azul
-  'Kombi':    { dia: 2, diaLabel: 'terça-feira',    cor: '#7C3AED', fundo: '#F5F3FF', borda: '#DDD6FE' }, // roxo
-  'Versa':    { dia: 4, diaLabel: 'quinta-feira',   cor: '#D97706', fundo: '#FFFBEB', borda: '#FDE68A' }, // âmbar
-  'Santana':  { dia: 4, diaLabel: 'quinta-feira',   cor: '#D97706', fundo: '#FFFBEB', borda: '#FDE68A' }, // âmbar
+// Rodízio por final de placa — São Paulo
+// 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex
+const RODIZIO_PLACA = {
+  '1': { dia: 1, diaLabel: 'segunda-feira', cor: '#1D4ED8', fundo: '#EFF6FF', borda: '#BFDBFE' },
+  '2': { dia: 1, diaLabel: 'segunda-feira', cor: '#1D4ED8', fundo: '#EFF6FF', borda: '#BFDBFE' },
+  '3': { dia: 2, diaLabel: 'terça-feira',   cor: '#7C3AED', fundo: '#F5F3FF', borda: '#DDD6FE' },
+  '4': { dia: 2, diaLabel: 'terça-feira',   cor: '#7C3AED', fundo: '#F5F3FF', borda: '#DDD6FE' },
+  '5': { dia: 3, diaLabel: 'quarta-feira',  cor: '#0891B2', fundo: '#ECFEFF', borda: '#A5F3FC' },
+  '6': { dia: 3, diaLabel: 'quarta-feira',  cor: '#0891B2', fundo: '#ECFEFF', borda: '#A5F3FC' },
+  '7': { dia: 4, diaLabel: 'quinta-feira',  cor: '#D97706', fundo: '#FFFBEB', borda: '#FDE68A' },
+  '8': { dia: 4, diaLabel: 'quinta-feira',  cor: '#D97706', fundo: '#FFFBEB', borda: '#FDE68A' },
+  '9': { dia: 5, diaLabel: 'sexta-feira',   cor: '#DC2626', fundo: '#FEF2F2', borda: '#FECACA' },
+  '0': { dia: 5, diaLabel: 'sexta-feira',   cor: '#DC2626', fundo: '#FEF2F2', borda: '#FECACA' },
 };
 
 function checkRodizio(vId, data){
@@ -1084,13 +1092,13 @@ function checkRodizio(vId, data){
   if(!vId||!data){el.style.display='none';return;}
   const v=veiculos.find(x=>String(x.id)===String(vId));
   if(!v){el.style.display='none';return;}
-  const rod=RODIZIO_MAP[v.nome];
-  if(!rod){el.style.display='none';return;}
-  const diaSemana=new Date(data+'T12:00:00').getDay(); // noon evita fuso horário
-  if(diaSemana!==rod.dia){el.style.display='none';return;}
-  // É dia de rodízio!
   const placa=v.placa||'';
   const ultimoDigito=placa.replace(/\D/g,'').slice(-1);
+  const rod=RODIZIO_PLACA[ultimoDigito];
+  if(!rod){el.style.display='none';return;}
+  const diaSemana=new Date(data+'T12:00:00').getDay();
+  if(diaSemana!==rod.dia){el.style.display='none';return;}
+  // É dia de rodízio!
   el.style.display='block';
   el.innerHTML=`
     <div style="border-radius:var(--r10);padding:0;border:2px solid ${rod.borda};background:${rod.fundo};overflow:hidden;margin-bottom:8px">
