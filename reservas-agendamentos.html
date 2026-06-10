@@ -845,8 +845,34 @@ tr:hover td{background:var(--gray-50)}
   <div id="rt-saida-info" style="background:var(--gray-50);border-radius:var(--r10);padding:9px 12px;margin-bottom:12px;font-size:12px;color:var(--gray-500)"></div>
   <div class="g2"><div class="fg"><label class="flbl">Data</label><input type="date" class="fi" id="rt-data"></div><div class="fg"><label class="flbl">Hora de retorno</label><input type="time" class="fi" id="rt-hora"></div></div>
   <div class="fg"><label class="flbl">Km no retorno</label><input type="number" class="fi" id="rt-km" placeholder="Ex: 45630"></div>
-  <div class="fg"><label class="flbl">Condições na devolução</label><select class="fi" id="rt-cond"><option value="ok">✅ Devolvido em boas condições</option><option value="avaria">⚠️ Avaria durante a viagem</option><option value="abastecimento">⛽ Necessita abastecimento</option></select></div>
-  <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="rt-obs" rows="2" style="resize:vertical" placeholder="Ocorrências, avarias, outros…"></textarea></div>
+
+  <!-- CONDIÇÕES NA DEVOLUÇÃO — checkboxes múltiplos -->
+  <div class="fg">
+    <label class="flbl">Condições na devolução <span style="color:var(--danger)">*</span> <span style="font-size:9px;font-weight:400;color:var(--gray-400);text-transform:none;letter-spacing:0">(selecione ao menos uma)</span></label>
+    <div style="background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:var(--r10);overflow:hidden">
+      <label id="rt-ck-ok-lbl" style="display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;border-bottom:1px solid var(--gray-200)" onclick="onRetCondChange()">
+        <input type="checkbox" id="rt-ck-ok" style="width:17px;height:17px;accent-color:var(--green);flex-shrink:0">
+        <div><div style="font-size:13px;font-weight:600;color:var(--gray-700)">✅ Devolvido em boas condições</div><div style="font-size:11px;color:var(--gray-400)">O veículo está nas mesmas condições da saída</div></div>
+      </label>
+      <label id="rt-ck-avaria-lbl" style="display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;border-bottom:1px solid var(--gray-200)" onclick="onRetCondChange()">
+        <input type="checkbox" id="rt-ck-avaria" style="width:17px;height:17px;accent-color:var(--danger);flex-shrink:0">
+        <div><div style="font-size:13px;font-weight:600;color:var(--gray-700)">⚠️ Avaria durante a viagem</div><div style="font-size:11px;color:var(--gray-400)">Ocorreu algum dano ou problema mecânico</div></div>
+      </label>
+      <label id="rt-ck-abast-lbl" style="display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer" onclick="onRetCondChange()">
+        <input type="checkbox" id="rt-ck-abast" style="width:17px;height:17px;accent-color:var(--warn);flex-shrink:0">
+        <div><div style="font-size:13px;font-weight:600;color:var(--gray-700)">⛽ Necessita abastecimento</div><div style="font-size:11px;color:var(--gray-400)">O veículo precisa ser abastecido</div></div>
+      </label>
+    </div>
+    <div id="rt-ck-aviso" style="display:none;font-size:11px;color:var(--danger);margin-top:5px;padding:6px 10px;background:#FEF2F2;border-radius:var(--r6);border:1px solid #FECACA"><i class="ti ti-alert-circle"></i> Selecione ao menos uma condição para prosseguir.</div>
+  </div>
+
+  <!-- OBSERVAÇÕES — obrigatório se avaria marcada -->
+  <div class="fg" id="rt-obs-wrap">
+    <label class="flbl" id="rt-obs-label">Observações</label>
+    <textarea class="fi" id="rt-obs" rows="2" style="resize:vertical" placeholder="Ocorrências, avarias, outros…"></textarea>
+    <div id="rt-obs-aviso" style="display:none;font-size:11px;color:var(--danger);margin-top:4px"><i class="ti ti-alert-circle"></i> Descreva a avaria para prosseguir.</div>
+  </div>
+
   <input type="hidden" id="rt-rid">
   <input type="hidden" id="rt-km-saida">
 </div>
@@ -1046,10 +1072,13 @@ setInterval(async()=>{
 /* STATUS */
 function vSt(v){
   if(v.status==='manutencao')return{l:'Manutenção',cls:'b-mnt',bar:'vb-mnt',ic:'ti-tool'};
+  // Em uso: reserva aprovada que já começou hoje e ainda não retornou
   const h=reservas.find(r=>r.status==='aprovado'&&r.veiculo_id===v.id&&r.data_saida<=TODAY&&r.hora_retorno>=NOW);
   if(h)return{l:'Em uso',cls:'b-uso',bar:'vb-uso',ic:'ti-car'};
-  const f=reservas.find(r=>r.status==='aprovado'&&r.veiculo_id===v.id&&r.data_saida>TODAY);
-  if(f)return{l:'Reservado',cls:'b-res',bar:'vb-res',ic:'ti-calendar-event'};
+  // Reservado: reserva aprovada PARA HOJE que ainda não começou
+  const t=reservas.find(r=>r.status==='aprovado'&&r.veiculo_id===v.id&&r.data_saida===TODAY&&r.hora_saida>NOW);
+  if(t)return{l:'Reservado',cls:'b-res',bar:'vb-res',ic:'ti-calendar-event'};
+  // Disponível: reservas futuras (outros dias) não alteram o status
   return{l:'Disponível',cls:'b-ok',bar:'vb-ok',ic:'ti-circle-check'};
 }
 function renderStats(){
@@ -1060,10 +1089,19 @@ function renderStats(){
   $('hero-stats').innerHTML=`<div class="hstat"><div class="hstat-n">${veiculos.length}</div><div class="hstat-l">Total</div></div><div class="hstat"><div class="hstat-n" style="color:#4DD68A">${disp}</div><div class="hstat-l">Disponíveis</div></div><div class="hstat"><div class="hstat-n" style="color:#93C5FD">${uso}</div><div class="hstat-l">Em uso</div></div><div class="hstat"><div class="hstat-n" style="color:#FCD34D">${res}</div><div class="hstat-l">Reservados</div></div><div class="hstat"><div class="hstat-n" style="color:#FCA5A5">${mnt}</div><div class="hstat-l">Manutenção</div></div>`;
   $('chips-bar').innerHTML=`<div class="chip"><div class="chip-dot" style="background:var(--green)"></div><div><span class="chip-n">${disp}</span><span class="chip-l">Disponíveis</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--blue3)"></div><div><span class="chip-n">${uso}</span><span class="chip-l">Em uso</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--warn)"></div><div><span class="chip-n">${res}</span><span class="chip-l">Reservados</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--danger)"></div><div><span class="chip-n">${mnt}</span><span class="chip-l">Manutenção</span></div></div>`;
 }
+function precisaAbastecimento(vid){
+  // Verifica se a última reserva concluída deste veículo tem 'abastecimento' nas condições
+  const ultimas=reservas.filter(r=>r.veiculo_id===vid&&r.status==='concluido'&&r.checklist?.retorno_cond);
+  if(!ultimas.length)return false;
+  const ultima=ultimas.sort((a,b)=>b.id-a.id)[0];
+  return (ultima.checklist.retorno_cond||'').includes('abastecimento');
+}
 function renderVgrid(){
   $('vgrid').innerHTML=veiculos.map(v=>{
     const s=vSt(v);
-    return`<div class="vcard"><div class="vcard-bar ${s.bar}"></div><div class="vcard-body"><div class="vcard-top"><div style="display:flex;align-items:center;gap:9px"><div class="vc-ic"><i class="ti ti-car"></i></div><div><div class="vc-name">${v.nome}</div><div class="vc-model">${v.modelo||''}</div></div></div><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></div><div><span class="vc-plate">${v.placa}</span></div><div class="vc-rows"><div class="vc-row"><strong>Local</strong>${v.localizacao||'—'}</div><div class="vc-row"><strong>Km</strong>${(v.km_atual||0).toLocaleString('pt-BR')}</div>${v.obs?`<div class="vc-row" style="color:var(--warn);font-size:10px"><i class="ti ti-alert-circle"></i>${v.obs}</div>`:''}</div></div></div>`;
+    const abast=precisaAbastecimento(v.id);
+    const abastBadge=abast?`<div style="display:flex;align-items:center;gap:4px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;color:#92400E;margin-top:6px"><i class="ti ti-gas-station" style="font-size:13px"></i>Necessita abastecimento</div>`:'';
+    return`<div class="vcard"><div class="vcard-bar ${s.bar}"></div><div class="vcard-body"><div class="vcard-top"><div style="display:flex;align-items:center;gap:9px"><div class="vc-ic"><i class="ti ti-car"></i></div><div><div class="vc-name">${v.nome}</div><div class="vc-model">${v.modelo||''}</div></div></div><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></div><div><span class="vc-plate">${v.placa}</span></div><div class="vc-rows"><div class="vc-row"><strong>Local</strong>${v.localizacao||'—'}</div><div class="vc-row"><strong>Km</strong>${(v.km_atual||0).toLocaleString('pt-BR')}</div>${v.obs?`<div class="vc-row" style="color:var(--warn);font-size:10px"><i class="ti ti-alert-circle"></i>${v.obs}</div>`:''}</div>${abastBadge}</div></div>`;
   }).join('')||'<div class="empty" style="grid-column:1/-1"><i class="ti ti-car-off"></i><h4>Nenhum veículo</h4></div>';
 }
 
@@ -1239,7 +1277,11 @@ function ckCard(r){
   if(ck.retorno_hora){
     const kmR=ck.retorno_km&&ck.saida_km?ck.retorno_km-ck.saida_km:null;
     body+=`<div class="ck-divider"></div><div class="ck-section"><i class="ti ti-login"></i>Retorno</div><div class="ck-info-grid"><div class="ck-field"><span class="ck-lbl">Data/Hora</span><span class="ck-val">${fmt(ck.retorno_data)} ${ck.retorno_hora}</span></div><div class="ck-field"><span class="ck-lbl">Km retorno</span><span class="ck-val">${(ck.retorno_km||0).toLocaleString('pt-BR')}</span></div></div>`;
-    if(ck.retorno_cond!=='ok')body+=`<div class="ck-avaria"><i class="ti ti-alert-triangle" style="flex-shrink:0"></i><span><strong>${ck.retorno_cond==='avaria'?'Avaria no retorno':'Abastecimento necessário'}:</strong> ${ck.retorno_obs||'—'}</span></div>`;
+    if(ck.retorno_cond&&!ck.retorno_cond.includes('ok')||ck.retorno_cond?.includes('avaria')||ck.retorno_cond?.includes('abastecimento')){
+      const conds=ck.retorno_cond||'';
+      if(conds.includes('avaria')) body+=`<div class="ck-avaria"><i class="ti ti-alert-triangle" style="flex-shrink:0"></i><span><strong>Avaria no retorno:</strong> ${ck.retorno_obs||'—'}</span></div>`;
+      if(conds.includes('abastecimento')) body+=`<div class="ck-avaria" style="background:#FEF3C7;border-color:#F59E0B;color:#92400E"><i class="ti ti-gas-station" style="flex-shrink:0"></i><span><strong>Necessita abastecimento</strong></span></div>`;
+    }
     if(kmR!==null)body+=`<div><span style="font-size:12px;color:var(--gray-400)">Total percorrido:</span> <span class="ck-km-badge"><i class="ti ti-road"></i> ${kmR.toLocaleString('pt-BR')} km</span></div>`;
   }
   let btns='';
@@ -1355,24 +1397,77 @@ async function salvarSaida(){
   if(v&&km>(v.km_atual||0))await SB.from('veiculos').update({km_atual:km}).eq('id',v.id);
   cov('ov-saida');await loadData();renderAll();buscarCK();toast('✓ Saída registrada!','ok');
 }
+function onRetCondChange(){
+  // Pequeno delay para o checkbox já ter mudado antes de ler
+  setTimeout(()=>{
+    const avaria=$('rt-ck-avaria').checked;
+    const lbl=$('rt-obs-label');
+    if(lbl) lbl.innerHTML=avaria
+      ? 'Observações <span style="color:var(--danger)">*</span> <span style="font-size:10px;color:var(--danger)">(obrigatório para avarias)</span>'
+      : 'Observações <span style="font-size:10px;color:var(--gray-400)">(opcional)</span>';
+    // Feedback visual
+    ['ok','avaria','abast'].forEach(id=>{
+      const cb=$('rt-ck-'+id), lbl=$('rt-ck-'+id+'-lbl');
+      if(cb&&lbl) lbl.style.background=cb.checked?'rgba(22,163,74,.07)':'';
+    });
+    const av=$('rt-ck-aviso'); if(av) av.style.display='none';
+    const ov2=$('rt-obs-aviso'); if(ov2) ov2.style.display='none';
+  },0);
+}
 function abrirRetorno(rid){
   const r=reservas.find(x=>x.id===rid);const v=veiculos.find(x=>x.id===r.veiculo_id);const ck=r.checklist||{};
   $('rt-rid').value=rid;$('rt-km-saida').value=ck.saida_km||0;
   $('rt-vei').value=(v?.nome||'?')+' — '+(v?.placa||'');
   $('rt-saida-info').innerHTML=`<strong>Saída registrada:</strong> ${fmt(ck.saida_data)} às ${ck.saida_hora} · Km: ${(ck.saida_km||0).toLocaleString('pt-BR')}`;
-  $('rt-data').value=TODAY;$('rt-hora').value=NOW;$('rt-km').value='';$('rt-cond').value='ok';$('rt-obs').value='';ov('ov-ret');
+  $('rt-data').value=TODAY;$('rt-hora').value=NOW;$('rt-km').value='';$('rt-obs').value='';
+  // Reset checkboxes
+  ['ok','avaria','abast'].forEach(id=>{
+    const cb=$('rt-ck-'+id); if(cb){cb.checked=false;}
+    const lbl=$('rt-ck-'+id+'-lbl'); if(lbl) lbl.style.background='';
+  });
+  const av=$('rt-ck-aviso'); if(av) av.style.display='none';
+  const ov2=$('rt-obs-aviso'); if(ov2) ov2.style.display='none';
+  const lbl=$('rt-obs-label'); if(lbl) lbl.innerHTML='Observações <span style="font-size:10px;color:var(--gray-400)">(opcional)</span>';
+  ov('ov-ret');
 }
 async function salvarRetorno(){
   const rid=parseInt($('rt-rid').value),kmSai=parseInt($('rt-km-saida').value)||0,km=parseInt($('rt-km').value);
   if(!km){toast('Informe o Km de retorno.','err');return}
   if(km<kmSai&&!confirm('Km de retorno menor que o de saída. Confirmar?'))return;
+
+  const ckOk=$('rt-ck-ok').checked;
+  const ckAvaria=$('rt-ck-avaria').checked;
+  const ckAbast=$('rt-ck-abast').checked;
+  const obs=$('rt-obs').value.trim();
+
+  // Ao menos uma condição obrigatória
+  if(!ckOk&&!ckAvaria&&!ckAbast){
+    const av=$('rt-ck-aviso'); if(av) av.style.display='block';
+    toast('Selecione ao menos uma condição de devolução.','err');return;
+  }
+  // Obs obrigatória se avaria
+  if(ckAvaria&&!obs){
+    const av=$('rt-obs-aviso'); if(av) av.style.display='block';
+    $('rt-obs').focus();
+    toast('Descreva a avaria nas observações.','err');return;
+  }
+
+  // Monta string de condições
+  const conds=[];
+  if(ckOk) conds.push('ok');
+  if(ckAvaria) conds.push('avaria');
+  if(ckAbast) conds.push('abastecimento');
+
   const r=reservas.find(x=>x.id===rid);
-  const ck={...(r.checklist||{}),retorno_data:$('rt-data').value,retorno_hora:$('rt-hora').value,retorno_km:km,retorno_cond:$('rt-cond').value,retorno_obs:$('rt-obs').value.trim()};
+  const ck={...(r.checklist||{}),retorno_data:$('rt-data').value,retorno_hora:$('rt-hora').value,retorno_km:km,retorno_cond:conds.join(','),retorno_obs:obs};
   const{error}=await SB.from('reservas').update({checklist:ck,status:'concluido'}).eq('id',rid);
   if(error){toast('Erro: '+(error.message||error.code),'err');return}
   const v=veiculos.find(x=>x.id===r.veiculo_id);
   if(v&&km>(v.km_atual||0))await SB.from('veiculos').update({km_atual:km}).eq('id',v.id);
-  cov('ov-ret');await loadData();renderAll();buscarCK();toast('✓ Retorno registrado! '+(km-kmSai).toLocaleString('pt-BR')+' km percorridos.','ok');
+  cov('ov-ret');await loadData();renderAll();buscarCK();
+  // Alerta especial de abastecimento
+  if(ckAbast) toast('⛽ '+v?.nome+' precisa de abastecimento! Verifique no painel.','warn',7000);
+  else toast('✓ Retorno registrado! '+(km-kmSai).toLocaleString('pt-BR')+' km percorridos.','ok');
 }
 
 /* ADMIN */
@@ -1658,7 +1753,7 @@ function renderRel(){
     ${rv.filter(r=>r.checklist&&r.checklist.saida_hora).length?rv.filter(r=>r.checklist&&r.checklist.saida_hora).map(r=>{
       const ck=r.checklist||{};
       const kmR=ck.retorno_km&&ck.saida_km?ck.retorno_km-ck.saida_km:null;
-      const temAvaria=(ck.saida_cond==='avaria'&&ck.saida_obs)||(ck.retorno_cond!=='ok'&&ck.retorno_obs);
+      const temAvaria=(ck.saida_cond==='avaria'&&ck.saida_obs)||(ck.retorno_cond&&(ck.retorno_cond.includes('avaria')||ck.retorno_cond.includes('abastecimento'))&&ck.retorno_obs);
       return`<div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r10);padding:12px 14px;margin-bottom:8px${temAvaria?';border-left:3px solid var(--danger)':''}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div style="font-weight:600;font-size:13px;font-family:var(--fh)">${r.responsavel}</div>
@@ -1670,7 +1765,7 @@ function renderRel(){
           <div><span style="color:var(--gray-400)">Percorrido:</span> ${kmR!==null?kmR.toLocaleString('pt-BR')+' km':'—'}</div>
         </div>
         ${ck.saida_cond==='avaria'&&ck.saida_obs?`<div style="background:#FEF2F2;border-radius:6px;padding:6px 10px;font-size:11px;color:var(--danger);margin-top:6px"><i class="ti ti-alert-triangle"></i> <strong>Avaria na saída:</strong> ${ck.saida_obs}</div>`:''}
-        ${ck.retorno_cond!=='ok'&&ck.retorno_obs?`<div style="background:#FEF2F2;border-radius:6px;padding:6px 10px;font-size:11px;color:var(--danger);margin-top:4px"><i class="ti ti-alert-triangle"></i> <strong>${ck.retorno_cond==='avaria'?'Avaria no retorno':'Abastecimento'}:</strong> ${ck.retorno_obs}</div>`:''}
+        ${ck.retorno_cond&&(ck.retorno_cond.includes('avaria')||ck.retorno_cond.includes('abastecimento'))&&ck.retorno_obs?`<div style="background:#FEF2F2;border-radius:6px;padding:6px 10px;font-size:11px;color:var(--danger);margin-top:4px"><i class="ti ti-alert-triangle"></i> <strong>${ck.retorno_cond.includes('avaria')?'Avaria no retorno':'Abastecimento'}:</strong> ${ck.retorno_obs}</div>`:''}
       </div>`;
     }).join(''):`<div style="font-size:13px;color:var(--gray-400);margin-bottom:14px">Nenhum checklist registrado no período.</div>`}
     <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin:12px 0 8px">Ocorrências <button class="btn btn-danger btn-sm" onclick="abrirProb('${v.id}')"><i class="ti ti-plus"></i>Registrar</button></div>
@@ -1704,7 +1799,7 @@ function renderCkAdm(){
   el.innerHTML=list.map(r=>{
     const v=veiculos.find(x=>x.id===r.veiculo_id);const ck=r.checklist||{};
     const kmR=ck.retorno_km&&ck.saida_km?ck.retorno_km-ck.saida_km:null;
-    const temAvaria=(ck.saida_cond==='avaria'&&ck.saida_obs)||(ck.retorno_cond!=='ok'&&ck.retorno_obs);
+    const temAvaria=(ck.saida_cond==='avaria'&&ck.saida_obs)||(ck.retorno_cond&&(ck.retorno_cond.includes('avaria')||ck.retorno_cond.includes('abastecimento'))&&ck.retorno_obs);
     let stCls,stLbl;
     if(ck.retorno_hora){stCls='ck-conc';stLbl='✅ Concluída';}
     else if(ck.saida_hora){stCls='ck-viagem';stLbl='🚗 Em viagem';}
@@ -1721,7 +1816,7 @@ function renderCkAdm(){
         ${kmR!==null?`<div style="grid-column:1/-1"><span style="color:var(--gray-400)">Percorrido:</span> <strong>${kmR.toLocaleString('pt-BR')} km</strong></div>`:''}
       </div>`:''}
       ${ck.saida_cond==='avaria'&&ck.saida_obs?`<div style="background:#FEF2F2;border-radius:6px;padding:6px 10px;font-size:11px;color:var(--danger);margin-bottom:4px"><i class="ti ti-alert-triangle"></i> <strong>Avaria na saída:</strong> ${ck.saida_obs}</div>`:''}
-      ${ck.retorno_cond!=='ok'&&ck.retorno_obs?`<div style="background:#FEF2F2;border-radius:6px;padding:6px 10px;font-size:11px;color:var(--danger)"><i class="ti ti-alert-triangle"></i> <strong>${ck.retorno_cond==='avaria'?'Avaria no retorno':'Abastecimento'}:</strong> ${ck.retorno_obs}</div>`:''}
+      ${ck.retorno_cond&&(ck.retorno_cond.includes('avaria')||ck.retorno_cond.includes('abastecimento'))&&ck.retorno_obs?`<div style="background:#FEF2F2;border-radius:6px;padding:6px 10px;font-size:11px;color:var(--danger)"><i class="ti ti-alert-triangle"></i> <strong>${ck.retorno_cond.includes('avaria')?'Avaria no retorno':'Abastecimento'}:</strong> ${ck.retorno_obs}</div>`:''}
     </div>`;
   }).join('');
 }
