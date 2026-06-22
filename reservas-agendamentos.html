@@ -458,6 +458,9 @@ tr:hover td{background:var(--gray-50)}
   </div>
 
   <div class="main">
+    <!-- AVISOS DO ADMIN -->
+    <div id="avisos-bar" style="display:none;margin-bottom:16px"></div>
+
     <!-- STATUS -->
     <div id="status-sec">
       <div class="stitle">Status da frota agora</div>
@@ -611,7 +614,9 @@ tr:hover td{background:var(--gray-50)}
           <div class="atab" id="atb-checklist" onclick="aTab('checklist')"><i class="ti ti-steering-wheel"></i> Checklists</div>
           <div class="atab" id="atb-cpfs" onclick="aTab('cpfs')"><i class="ti ti-id-badge-2"></i> CPFs</div>
           <div class="atab" id="atb-lavagem" onclick="aTab('lavagem')"><i class="ti ti-droplet"></i> Lavagens</div>
+          <div class="atab" id="atb-dashboard" onclick="aTab('dashboard')"><i class="ti ti-chart-line"></i> Dashboard</div>
           <div class="atab" id="atb-depto" onclick="aTab('depto')"><i class="ti ti-chart-pie"></i> Por Depto</div>
+          <div class="atab" id="atb-avisos" onclick="aTab('avisos')"><i class="ti ti-speakerphone"></i> Avisos</div>
           <div class="atab" id="atb-senha" onclick="aTab('senha')" style="display:none"><i class="ti ti-key"></i> Senha</div>
         </div>
         <div class="admin-pane on" id="ap-aprov"></div>
@@ -661,7 +666,50 @@ tr:hover td{background:var(--gray-50)}
           </div>
           <div id="lav-adm-list"></div>
         </div>
+        <div class="admin-pane" id="ap-dashboard">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:18px" id="dash-kpis"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div style="background:#fff;border-radius:var(--r14);border:1.5px solid var(--gray-200);padding:16px">
+              <div style="font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">Reservas por mês</div>
+              <canvas id="dash-chart-mes" height="180"></canvas>
+            </div>
+            <div style="background:#fff;border-radius:var(--r14);border:1.5px solid var(--gray-200);padding:16px">
+              <div style="font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">Uso por veículo</div>
+              <canvas id="dash-chart-vei" height="180"></canvas>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div style="background:#fff;border-radius:var(--r14);border:1.5px solid var(--gray-200);padding:16px">
+              <div style="font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">Status das reservas</div>
+              <canvas id="dash-chart-status" height="180"></canvas>
+            </div>
+            <div style="background:#fff;border-radius:var(--r14);border:1.5px solid var(--gray-200);padding:16px">
+              <div style="font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">Top departamentos</div>
+              <canvas id="dash-chart-dep" height="180"></canvas>
+            </div>
+          </div>
+        </div>
         <div class="admin-pane" id="ap-depto"><div id="depto-body"></div></div>
+        <div class="admin-pane" id="ap-avisos">
+          <div style="margin-bottom:16px">
+            <div style="font-family:var(--fh);font-size:12px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Novo comunicado</div>
+            <div class="fg"><label class="flbl">Título</label><input class="fi" id="av-titulo" placeholder="Ex: Kombi em manutenção até sexta-feira"></div>
+            <div class="fg"><label class="flbl">Mensagem</label><textarea class="fi" id="av-msg" rows="2" style="resize:vertical" placeholder="Detalhes do comunicado…"></textarea></div>
+            <div class="g2">
+              <div class="fg"><label class="flbl">Tipo</label>
+                <select class="fi" id="av-tipo">
+                  <option value="info">ℹ️ Informação</option>
+                  <option value="warn">⚠️ Atenção</option>
+                  <option value="danger">🚨 Urgente</option>
+                  <option value="ok">✅ Positivo</option>
+                </select>
+              </div>
+              <div class="fg"><label class="flbl">Expira em</label><input type="date" class="fi" id="av-exp"></div>
+            </div>
+            <button class="btn btn-p btn-sm" onclick="salvarAviso()"><i class="ti ti-send"></i> Publicar aviso</button>
+          </div>
+          <div id="av-lista"></div>
+        </div>
         <div class="admin-pane" id="ap-cpfs">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
             <div style="font-size:13px;color:var(--gray-500)">Motoristas autorizados a utilizar os veículos da frota</div>
@@ -762,6 +810,7 @@ tr:hover td{background:var(--gray-50)}
   <div class="fg"><label class="flbl">Nome completo</label><input class="fi" id="cpf-f-nome" placeholder="Nome do motorista"></div>
   <div class="fg"><label class="flbl">Departamento</label><input class="fi" id="cpf-f-dep" placeholder="Departamento ou setor"></div>
   <div class="fg"><label class="flbl">Telefone / WhatsApp</label><input class="fi" id="cpf-f-tel" placeholder="(11) 99999-0000" maxlength="15" oninput="maskTel(this)"></div>
+  <div class="fg"><label class="flbl">E-mail <span style="font-size:10px;color:var(--gray-400);font-weight:400">(para notificações de reserva)</span></label><input type="email" class="fi" id="cpf-f-email" placeholder="colaborador@colegioser.com"></div>
   <div class="fg"><label class="flbl">Data de assinatura do termo</label><input type="date" class="fi" id="cpf-f-data"></div>
   <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="cpf-f-obs" rows="2" style="resize:vertical" placeholder="CNH, vencimento, restrições…"></textarea></div>
   <div id="cpf-admin-row" style="display:none;margin-top:4px">
@@ -1035,6 +1084,8 @@ function aplicarSessao(found){
   renderAll();
   initCkVFil();
   loadLavagens().then(()=>initLavSec());
+  loadAvisos().then(()=>renderAvisosBar());
+  expirarReservasPendentes();
   $('rv-data').value=TODAY;
   $('rv-hora-saida').value=NOW;
   $('rv-hora-ret').value=NOW;
@@ -1062,10 +1113,12 @@ function renderAll(){renderStats();renderVgrid();renderRvVeiculos();renderCal();
 
 /* AUTO-REFRESH a cada 60s — atualiza dados sem recarregar a página */
 setInterval(async()=>{
-  if(!currentUser)return; // só atualiza se estiver logado
+  if(!currentUser)return;
   await loadData();
   await loadLavagens();
+  await loadAvisos();
   renderAll();
+  renderAvisosBar();
   if(adminLogado){renderAprov();renderTodasRes&&renderTodasRes();}
 }, 60000);
 
@@ -1107,10 +1160,18 @@ async function marcarAbastecido(rid){
   if(error){toast('Erro: '+(error.message||error.code),'err');return;}
   await loadData();renderAll();toast('✓ Veículo marcado como abastecido!','ok');
 }
+function precisaManutencao(v){
+  if(!v.proxima_troca_oleo_km||!v.km_atual)return null;
+  const diff=v.proxima_troca_oleo_km-v.km_atual;
+  if(diff<=0)return{tipo:'danger',msg:`Troca de óleo atrasada (${Math.abs(diff).toLocaleString('pt-BR')} km acima)`};
+  if(diff<=3000)return{tipo:'warn',msg:`Troca de óleo em ${diff.toLocaleString('pt-BR')} km`};
+  return null;
+}
 function renderVgrid(){
   $('vgrid').innerHTML=veiculos.map(v=>{
     const s=vSt(v);
     const {precisa,rid}=precisaAbastecimento(v.id);
+    const mnt=precisaManutencao(v);
     const abastBadge=precisa?`
       <div style="display:flex;align-items:center;justify-content:space-between;background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:6px 10px;margin-top:8px">
         <div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#92400E">
@@ -1118,7 +1179,8 @@ function renderVgrid(){
         </div>
         ${(adminLogado||currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF)?`<button onclick="marcarAbastecido(${rid})" style="background:#F59E0B;border:none;color:#fff;font-size:10px;font-weight:700;font-family:var(--fh);padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap"><i class="ti ti-check" style="font-size:11px"></i> Abastecido</button>`:''}
       </div>`:'';
-    return`<div class="vcard"><div class="vcard-bar ${s.bar}"></div><div class="vcard-body"><div class="vcard-top"><div style="display:flex;align-items:center;gap:9px"><div class="vc-ic"><i class="ti ti-car"></i></div><div><div class="vc-name">${v.nome}</div><div class="vc-model">${v.modelo||''}</div></div></div><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></div><div><span class="vc-plate">${v.placa}</span></div><div class="vc-rows"><div class="vc-row"><strong>Local</strong>${v.localizacao||'—'}</div><div class="vc-row"><strong>Km</strong>${(v.km_atual||0).toLocaleString('pt-BR')}</div>${v.obs?`<div class="vc-row" style="color:var(--warn);font-size:10px"><i class="ti ti-alert-circle"></i>${v.obs}</div>`:''}</div>${abastBadge}</div></div>`;
+    const mntBadge=mnt?`<div style="display:flex;align-items:center;gap:5px;background:${mnt.tipo==='danger'?'#FEF2F2':'#FEF3C7'};border:1px solid ${mnt.tipo==='danger'?'#FECACA':'#F59E0B'};border-radius:8px;padding:6px 10px;margin-top:6px;font-size:11px;font-weight:600;color:${mnt.tipo==='danger'?'#991B1B':'#92400E'}"><i class="ti ti-tool" style="font-size:14px"></i>${mnt.msg}</div>`:'';
+    return`<div class="vcard"><div class="vcard-bar ${s.bar}"></div><div class="vcard-body"><div class="vcard-top"><div style="display:flex;align-items:center;gap:9px"><div class="vc-ic"><i class="ti ti-car"></i></div><div><div class="vc-name">${v.nome}</div><div class="vc-model">${v.modelo||''}</div></div></div><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></div><div><span class="vc-plate">${v.placa}</span></div><div class="vc-rows"><div class="vc-row"><strong>Local</strong>${v.localizacao||'—'}</div><div class="vc-row"><strong>Km</strong>${(v.km_atual||0).toLocaleString('pt-BR')}</div>${v.obs?`<div class="vc-row" style="color:var(--warn);font-size:10px"><i class="ti ti-alert-circle"></i>${v.obs}</div>`:''}</div>${abastBadge}${mntBadge}</div></div>`;
   }).join('')||'<div class="empty" style="grid-column:1/-1"><i class="ti ti-car-off"></i><h4>Nenhum veículo</h4></div>';
 }
 
@@ -1503,7 +1565,7 @@ async function checkPwd(){
 }
 function fecharAdmin(){adminLogado=false;localStorage.removeItem('frota_admin');$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';}
 function aTab(n){
-  ['aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem','depto','senha'].forEach(x=>{
+  ['aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem','depto','senha','dashboard','avisos'].forEach(x=>{
     $('atb-'+x)?.classList.toggle('on',x===n);
     $('ap-'+x)?.classList.toggle('on',x===n);
   });
@@ -1515,6 +1577,8 @@ function aTab(n){
   if(n==='lavagem'){renderLavAdm();renderLavStats();}
   if(n==='depto'){renderDeptoReport();}
   if(n==='senha'){limparSenhaForm();}
+  if(n==='dashboard'){renderDashboard();}
+  if(n==='avisos'){renderAvisosAdm();}
 }
 
 /* SENHA ADMIN — só acessível ao super admin */
@@ -1652,11 +1716,42 @@ async function confAp(acao){
   if(res){
     const solUser=cpfs.find(u=>u.nome===res.responsavel);
     const tel=solUser?.telefone?solUser.telefone.replace(/\D/g,''):'';
+    const email=solUser?.email||'';
     const v=veiculos.find(x=>x.id===res.veiculo_id);
     const protocolo=String(res.id).padStart(5,'0');
     const primeiroNome=res.responsavel.split(' ')[0];
-    const tratamento=res.responsavel.toLowerCase().includes(' ')?'Prezado(a) '+primeiroNome+',':'Prezado(a) '+primeiroNome+',';
-
+    const tratamento='Prezado(a) '+primeiroNome+',';
+    // Envia e-mail ao solicitante se tiver e-mail cadastrado
+    if(email){
+      const corHeader=acao==='aprovar'?'#166534':'#991B1B';
+      const icone=acao==='aprovar'?'✅':'❌';
+      const titulo=acao==='aprovar'?'Reserva Aprovada':'Reserva Não Aprovada';
+      const htmlEmail=`<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:${corHeader};padding:20px 24px;border-radius:12px 12px 0 0">
+          <h2 style="color:#fff;margin:0;font-size:18px">${icone} ${titulo} — Frota Institucional</h2>
+          <p style="color:rgba(255,255,255,.7);margin:4px 0 0;font-size:12px">UniFECAF & Colégio SER</p>
+        </div>
+        <div style="background:#f8f9fa;padding:20px 24px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0;border-top:none">
+          <p style="font-size:14px;color:#374151">${tratamento}</p>
+          <p style="font-size:14px;color:#374151">${acao==='aprovar'?'Sua solicitação de reserva foi <strong>aprovada</strong>.':'Sua solicitação de reserva <strong>não pôde ser aprovada</strong> neste momento.'}</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <tr><td style="padding:6px 0;color:#6b7280;font-size:13px;width:130px">Veículo</td><td style="padding:6px 0;font-weight:600;font-size:13px;color:#374151">${v?.nome||'—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;font-size:13px">Data</td><td style="padding:6px 0;font-weight:600;font-size:13px;color:#374151">${fmt(res.data_saida)}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;font-size:13px">Horário</td><td style="padding:6px 0;font-weight:600;font-size:13px;color:#374151">${res.hora_saida} → ${res.hora_retorno}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;font-size:13px">Protocolo</td><td style="padding:6px 0;font-weight:600;font-size:13px;color:#374151">#${protocolo}</td></tr>
+            ${feed?`<tr><td style="padding:6px 0;color:#6b7280;font-size:13px">${acao==='aprovar'?'Observação':'Motivo'}</td><td style="padding:6px 0;font-size:13px;color:#374151">${feed}</td></tr>`:''}
+          </table>
+          ${acao==='aprovar'?`<div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 14px;border-radius:6px;font-size:13px;color:#166534">Lembre-se de realizar o checklist de saída no sistema no momento da retirada.</div>`:''}
+          <p style="font-size:12px;color:#9ca3af;margin-top:16px">Acesse o sistema: <a href="https://1brunomoreno.github.io/frota-uniser/reservas-agendamentos.html" style="color:#1565C0">frota-uniser</a></p>
+        </div></div>`;
+      try{
+        await fetch('https://api.resend.com/emails',{
+          method:'POST',
+          headers:{'Authorization':`Bearer ${Deno?.env?.get?.('RESEND_API_KEY')||''}`, 'Content-Type':'application/json'},
+          body:JSON.stringify({from:'onboarding@resend.dev',to:email,subject:`${icone} ${titulo} — Protocolo #${protocolo}`,html:htmlEmail})
+        });
+      }catch(e){console.warn('E-mail solicitante:',e);}
+    }
     let msg;
     if(acao==='aprovar'){
       msg=
@@ -1697,7 +1792,6 @@ https://1brunomoreno.github.io/frota-uniser/reservas-agendamentos.html
 _Atenciosamente,_
 _Bruno Moreno — UniFECAF / Colégio SER_`;
     }
-
     if(tel){
       const link=`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`;
       setTimeout(()=>{if(confirm('Deseja notificar o solicitante via WhatsApp?'))window.open(link,'_blank');},300);
@@ -1854,7 +1948,7 @@ function renderCPFs(){
 function abrirCPFModal(){
   const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
   $('cpf-modal-tit').textContent='Cadastrar CPF autorizado';
-  $('cpf-f-id').value='';$('cpf-f-num').value='';$('cpf-f-nome').value='';$('cpf-f-dep').value='';$('cpf-f-tel').value='';$('cpf-f-data').value=TODAY;$('cpf-f-obs').value='';
+  $('cpf-f-id').value='';$('cpf-f-num').value='';$('cpf-f-nome').value='';$('cpf-f-dep').value='';$('cpf-f-tel').value='';$('cpf-f-email').value='';$('cpf-f-data').value=TODAY;$('cpf-f-obs').value='';
   $('cpf-f-admin').checked=false;
   $('cpf-admin-row').style.display=isSuperAdmin?'block':'none';
   ov('ov-cpf');
@@ -1864,7 +1958,7 @@ function editarCPF(id){
   const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
   const isSelf=cleanCPF(c.cpf)===SUPER_ADMIN_CPF;
   $('cpf-modal-tit').textContent='Editar CPF';
-  $('cpf-f-id').value=id;$('cpf-f-num').value=c.cpf;$('cpf-f-nome').value=c.nome;$('cpf-f-dep').value=c.departamento||'';$('cpf-f-tel').value=c.telefone||'';$('cpf-f-data').value=c.data_assinatura||'';$('cpf-f-obs').value=c.observacoes||'';
+  $('cpf-f-id').value=id;$('cpf-f-num').value=c.cpf;$('cpf-f-nome').value=c.nome;$('cpf-f-dep').value=c.departamento||'';$('cpf-f-tel').value=c.telefone||'';$('cpf-f-email').value=c.email||'';$('cpf-f-data').value=c.data_assinatura||'';$('cpf-f-obs').value=c.observacoes||'';
   $('cpf-f-admin').checked=!!c.is_admin;
   // Mostra toggle só para o super admin, e não para editar o próprio cadastro do super admin
   $('cpf-admin-row').style.display=(isSuperAdmin&&!isSelf)?'block':'none';
@@ -1879,7 +1973,7 @@ async function salvarCPF(){
   const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
   const isSelf=cleanCPF(cpfNum)===SUPER_ADMIN_CPF;
   // Dados base — sem is_admin por padrão
-  const data={cpf:cpfNum,nome,departamento:$('cpf-f-dep').value.trim(),telefone:$('cpf-f-tel').value.trim()||null,data_assinatura:$('cpf-f-data').value||null,observacoes:$('cpf-f-obs').value.trim()};
+  const data={cpf:cpfNum,nome,departamento:$('cpf-f-dep').value.trim(),telefone:$('cpf-f-tel').value.trim()||null,email:$('cpf-f-email').value.trim()||null,data_assinatura:$('cpf-f-data').value||null,observacoes:$('cpf-f-obs').value.trim()};
   // Tenta salvar os dados base primeiro
   let res=id?await SB.from('cpfs_autorizados').update(data).eq('id',id):await SB.from('cpfs_autorizados').insert([data]).select();
   if(res.error){toast('Erro: '+(res.error.message||res.error.code),'err');console.error(res.error);return}
@@ -1919,8 +2013,27 @@ async function toggleAdmin_CPF(id){
 async function delCPF(id){const c=cpfs.find(x=>x.id===id);if(!confirm(`Remover CPF de "${c?.nome}"? Essa pessoa não poderá mais acessar o sistema.`))return;const{error}=await SB.from('cpfs_autorizados').delete().eq('id',id);if(error){toast('Erro','err');return}await loadData();renderCPFs();toast('CPF removido.','info');}
 
 /* EXPORT */
-function expCSV(vid){const v=veiculos.find(x=>x.id==vid);const rows=reservas.filter(r=>r.veiculo_id==vid).map(r=>`${r.id},"${v?.nome}","${v?.placa}","${r.departamento}","${r.responsavel}","${fmt(r.data_saida)}","${r.hora_saida||''}","${r.hora_retorno||''}","${r.destino}","${r.status}"`);dl(['ID,Veiculo,Placa,Departamento,Responsavel,Data,HoraSaida,HoraRetorno,Destino,Status',...rows].join('\n'),`relatorio_${v?.nome?.replace(/ /g,'_')}.csv`,'text/csv');}
-function expTXT(vid){const v=veiculos.find(x=>x.id==vid);let t=`RELATÓRIO — ${v?.nome} (${v?.placa})\n${'='.repeat(48)}\n`;reservas.filter(r=>r.veiculo_id==vid).forEach(r=>{t+=`${fmt(r.data_saida)} ${r.hora_saida||''}→${r.hora_retorno||''} | ${r.responsavel} | ${r.destino} | ${r.status}\n`;});dl(t,`relatorio_${v?.nome?.replace(/ /g,'_')}.txt`,'text/plain');}
+function getRelFiltradas(vid){
+  const de=$('rel-de').value, ate=$('rel-ate').value;
+  return reservas.filter(r=>r.veiculo_id==vid&&(!de||r.data_saida>=de)&&(!ate||r.data_saida<=ate));
+}
+function expCSV(vid){
+  const v=veiculos.find(x=>x.id==vid);
+  const de=$('rel-de').value,ate=$('rel-ate').value;
+  const periodo=de||ate?` (${de?fmt(de):'início'} a ${ate?fmt(ate):'hoje'})`:'';
+  const rows=getRelFiltradas(vid).map(r=>`${r.id},"${v?.nome}","${v?.placa}","${r.departamento}","${r.responsavel}","${fmt(r.data_saida)}","${r.hora_saida||''}","${r.hora_retorno||''}","${r.destino}","${r.status}"`);
+  dl(['ID,Veiculo,Placa,Departamento,Responsavel,Data,HoraSaida,HoraRetorno,Destino,Status',...rows].join('\n'),`relatorio_${v?.nome?.replace(/ /g,'_')}${de||ate?'_periodo':''}.csv`,'text/csv');
+  toast(`CSV exportado — ${rows.length} registros${periodo}`,'ok');
+}
+function expTXT(vid){
+  const v=veiculos.find(x=>x.id==vid);
+  const de=$('rel-de').value,ate=$('rel-ate').value;
+  const periodo=de||ate?`Período: ${de?fmt(de):'início'} a ${ate?fmt(ate):'hoje'}\n`:'';
+  let t=`RELATÓRIO — ${v?.nome} (${v?.placa})\n${periodo}${'='.repeat(48)}\n`;
+  getRelFiltradas(vid).forEach(r=>{t+=`${fmt(r.data_saida)} ${r.hora_saida||''}→${r.hora_retorno||''} | ${r.responsavel} | ${r.destino} | ${r.status}\n`;});
+  dl(t,`relatorio_${v?.nome?.replace(/ /g,'_')}${de||ate?'_periodo':''}.txt`,'text/plain');
+  toast('TXT exportado','ok');
+}
 function dl(c,n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();}
 
 
@@ -2317,6 +2430,166 @@ window.addEventListener('appinstalled',function(){
   if(b) b.style.display='none';
   localStorage.setItem('pwa-dismissed','1');
 });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+/* ============================================================
+   DASHBOARD
+============================================================ */
+let _dashCharts={};
+function renderDashboard(){
+  const el=$('dash-kpis');
+  if(!el)return;
+  const total=reservas.length;
+  const aprovadas=reservas.filter(r=>r.status==='aprovado'||r.status==='concluido').length;
+  const pendentes=reservas.filter(r=>r.status==='pendente').length;
+  const concluidas=reservas.filter(r=>r.status==='concluido').length;
+  const kmTotal=reservas.filter(r=>r.checklist?.retorno_km&&r.checklist?.saida_km).reduce((s,r)=>s+(r.checklist.retorno_km-r.checklist.saida_km),0);
+  const taxa=total?Math.round((aprovadas/total)*100):0;
+  const kpis=[
+    {l:'Total de reservas',v:total,ic:'ti-calendar',cor:'#1565C0'},
+    {l:'Aprovadas/Concluídas',v:aprovadas,ic:'ti-check',cor:'#166534'},
+    {l:'Pendentes',v:pendentes,ic:'ti-clock',cor:'#D97706'},
+    {l:'Km rodados',v:kmTotal.toLocaleString('pt-BR'),ic:'ti-road',cor:'#7C3AED'},
+    {l:'Taxa de aprovação',v:taxa+'%',ic:'ti-percentage',cor:'#0E7490'},
+    {l:'Veículos ativos',v:veiculos.filter(v=>v.status!=='manutencao').length,ic:'ti-car',cor:'#065F46'},
+  ];
+  el.innerHTML=kpis.map(k=>`<div style="background:#fff;border-radius:var(--r12);border:1.5px solid var(--gray-200);padding:12px 14px">
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
+      <div style="width:28px;height:28px;border-radius:8px;background:${k.cor}18;display:flex;align-items:center;justify-content:center"><i class="ti ${k.ic}" style="color:${k.cor};font-size:14px"></i></div>
+      <div style="font-size:10px;font-weight:600;color:var(--gray-400);font-family:var(--fh);text-transform:uppercase;letter-spacing:.4px;line-height:1.2">${k.l}</div>
+    </div>
+    <div style="font-family:var(--fh);font-size:20px;font-weight:800;color:${k.cor}">${k.v}</div>
+  </div>`).join('');
+
+  // Destroi charts anteriores
+  Object.values(_dashCharts).forEach(c=>c.destroy());
+  _dashCharts={};
+
+  // Chart 1: Reservas por mês
+  const meses={};
+  reservas.forEach(r=>{
+    const m=r.data_saida?.slice(0,7);
+    if(m)meses[m]=(meses[m]||0)+1;
+  });
+  const mKeys=Object.keys(meses).sort().slice(-6);
+  const mLabels=mKeys.map(m=>{const[y,mo]=m.split('-');return['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)-1]+'/'+y.slice(2);});
+  const ctx1=$('dash-chart-mes');
+  if(ctx1)_dashCharts.mes=new Chart(ctx1,{type:'bar',data:{labels:mLabels,datasets:[{label:'Reservas',data:mKeys.map(m=>meses[m]),backgroundColor:'#1565C020',borderColor:'#1565C0',borderWidth:2,borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+
+  // Chart 2: Uso por veículo
+  const vCount={};
+  reservas.filter(r=>r.status!=='negado').forEach(r=>{
+    const v=veiculos.find(x=>x.id===r.veiculo_id);
+    const n=v?.nome||'?';
+    vCount[n]=(vCount[n]||0)+1;
+  });
+  const vEntries=Object.entries(vCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const ctx2=$('dash-chart-vei');
+  const cores=['#1565C0','#166534','#7C3AED','#D97706','#0E7490','#991B1B'];
+  if(ctx2)_dashCharts.vei=new Chart(ctx2,{type:'doughnut',data:{labels:vEntries.map(e=>e[0]),datasets:[{data:vEntries.map(e=>e[1]),backgroundColor:cores.slice(0,vEntries.length),borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}});
+
+  // Chart 3: Status
+  const stCount={aprovado:0,pendente:0,negado:0,concluido:0};
+  reservas.forEach(r=>{if(stCount[r.status]!==undefined)stCount[r.status]++;});
+  const ctx3=$('dash-chart-status');
+  if(ctx3)_dashCharts.st=new Chart(ctx3,{type:'doughnut',data:{labels:['Aprovado','Pendente','Negado','Concluído'],datasets:[{data:[stCount.aprovado,stCount.pendente,stCount.negado,stCount.concluido],backgroundColor:['#16A34A','#D97706','#DC2626','#1D4ED8'],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}});
+
+  // Chart 4: Top departamentos
+  const dCount={};
+  reservas.filter(r=>r.status!=='negado').forEach(r=>{const d=r.departamento||'Outros';dCount[d]=(dCount[d]||0)+1;});
+  const dEntries=Object.entries(dCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const ctx4=$('dash-chart-dep');
+  if(ctx4)_dashCharts.dep=new Chart(ctx4,{type:'bar',data:{labels:dEntries.map(e=>e[0].length>12?e[0].slice(0,12)+'…':e[0]),datasets:[{label:'Reservas',data:dEntries.map(e=>e[1]),backgroundColor:cores.slice(0,dEntries.length),borderRadius:5,borderWidth:0}]},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1}}}}});
+}
+
+/* ============================================================
+   AVISOS E COMUNICADOS
+============================================================ */
+let avisos=[];
+async function loadAvisos(){
+  try{
+    const{data,error}=await SB.from('avisos').select('*').order('criado_em',{ascending:false});
+    if(error){console.warn('Tabela avisos não existe ainda.');avisos=[];return;}
+    avisos=data||[];
+  }catch(e){avisos=[];}
+}
+function renderAvisosBar(){
+  const el=$('avisos-bar');
+  if(!el)return;
+  const hoje=TODAY;
+  const ativos=avisos.filter(a=>!a.expira_em||a.expira_em>=hoje);
+  if(!ativos.length){el.style.display='none';return;}
+  const corMap={info:{bg:'#EFF6FF',brd:'#BFDBFE',txt:'#1E40AF',ic:'ti-info-circle'},warn:{bg:'#FFFBEB',brd:'#FDE68A',txt:'#92400E',ic:'ti-alert-triangle'},danger:{bg:'#FEF2F2',brd:'#FECACA',txt:'#991B1B',ic:'ti-alert-octagon'},ok:{bg:'#F0FDF4',brd:'#BBF7D0',txt:'#166534',ic:'ti-circle-check'}};
+  el.style.display='block';
+  el.innerHTML=ativos.map(a=>{
+    const c=corMap[a.tipo]||corMap.info;
+    return`<div style="background:${c.bg};border:1px solid ${c.brd};border-radius:var(--r10);padding:11px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+      <i class="ti ${c.ic}" style="color:${c.txt};font-size:17px;flex-shrink:0;margin-top:1px"></i>
+      <div style="flex:1">
+        <div style="font-family:var(--fh);font-size:13px;font-weight:700;color:${c.txt}">${a.titulo}</div>
+        ${a.mensagem?`<div style="font-size:12px;color:${c.txt};opacity:.85;margin-top:2px">${a.mensagem}</div>`:''}
+      </div>
+      ${a.expira_em?`<div style="font-size:10px;color:${c.txt};opacity:.6;white-space:nowrap">até ${fmt(a.expira_em)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+function renderAvisosAdm(){
+  const el=$('av-lista');
+  if(!el)return;
+  if(!avisos.length){el.innerHTML='<div class="empty"><i class="ti ti-speakerphone"></i><h4>Nenhum aviso publicado</h4></div>';return;}
+  const corMap={info:{bg:'#EFF6FF',txt:'#1E40AF'},warn:{bg:'#FFFBEB',txt:'#92400E'},danger:{bg:'#FEF2F2',txt:'#991B1B'},ok:{bg:'#F0FDF4',txt:'#166534'}};
+  el.innerHTML=`<div style="font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px">Avisos publicados</div>`+
+  avisos.map(a=>{
+    const c=corMap[a.tipo]||corMap.info;
+    const expirado=a.expira_em&&a.expira_em<TODAY;
+    return`<div style="background:${expirado?'var(--gray-50)':c.bg};border-radius:var(--r10);padding:11px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;border:1px solid var(--gray-200);opacity:${expirado?'.5':'1'}">
+      <div style="flex:1">
+        <div style="font-family:var(--fh);font-size:13px;font-weight:700;color:${expirado?'var(--gray-500)':c.txt}">${a.titulo} ${expirado?'<span style="font-size:10px;font-weight:400">(expirado)</span>':''}</div>
+        ${a.mensagem?`<div style="font-size:12px;color:var(--gray-500);margin-top:2px">${a.mensagem}</div>`:''}
+        <div style="font-size:10px;color:var(--gray-400);margin-top:4px">Publicado em ${fmt(a.criado_em?.slice(0,10))}${a.expira_em?' · Expira: '+fmt(a.expira_em):' · Sem expiração'}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="delAviso(${a.id})" style="flex-shrink:0"><i class="ti ti-trash"></i></button>
+    </div>`;
+  }).join('');
+}
+async function salvarAviso(){
+  const titulo=$('av-titulo').value.trim();
+  if(!titulo){toast('Título obrigatório.','err');return;}
+  const data={titulo,mensagem:$('av-msg').value.trim(),tipo:$('av-tipo').value,expira_em:$('av-exp').value||null};
+  const{error}=await SB.from('avisos').insert([data]).select();
+  if(error){
+    if(error.code==='42P01')toast('Crie a tabela "avisos" no Supabase primeiro. Ver passo a passo abaixo.','err');
+    else toast('Erro: '+error.message,'err');
+    return;
+  }
+  $('av-titulo').value='';$('av-msg').value='';$('av-exp').value='';
+  await loadAvisos();renderAvisosAdm();renderAvisosBar();
+  toast('✓ Aviso publicado!','ok');
+}
+async function delAviso(id){
+  if(!confirm('Remover este aviso?'))return;
+  const{error}=await SB.from('avisos').delete().eq('id',id);
+  if(error){toast('Erro','err');return;}
+  await loadAvisos();renderAvisosAdm();renderAvisosBar();
+  toast('Aviso removido.','info');
+}
+
+/* ============================================================
+   EXPIRAÇÃO AUTOMÁTICA DE RESERVAS PENDENTES
+============================================================ */
+async function expirarReservasPendentes(){
+  const antigas=reservas.filter(r=>r.status==='pendente'&&r.data_saida<TODAY);
+  if(!antigas.length)return;
+  for(const r of antigas){
+    await SB.from('reservas').update({status:'negado',feedback:'Reserva expirada automaticamente (data já passou).'}).eq('id',r.id);
+  }
+  if(antigas.length>0){
+    await loadData();renderAll();renderAprov();
+    console.log(`${antigas.length} reserva(s) pendente(s) expirada(s) automaticamente.`);
+  }
+}
 </script>
 </body>
 </html>
