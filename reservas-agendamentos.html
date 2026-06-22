@@ -1698,20 +1698,33 @@ function renderAprov(){
   }).join('');
 }
 let curApId=null;
+let _apProcessando=false;
 function openAp(id,acao){
+  if(_apProcessando)return;
   curApId=id;const r=reservas.find(x=>x.id===id);const v=veiculos.find(x=>x.id===r.veiculo_id);
   $('ap-title').textContent=acao==='aprovar'?'Aprovar reserva':'Negar reserva';
   $('ap-body').innerHTML=`<div class="alert ${acao==='aprovar'?'a-ok':'a-danger'}" style="margin-bottom:12px"><i class="ti ${acao==='aprovar'?'ti-check':'ti-x'}"></i><div>Você irá <strong>${acao==='aprovar'?'APROVAR':'NEGAR'}</strong> a reserva de <strong>${v?.nome}</strong> por <strong>${r.responsavel}</strong> em ${fmt(r.data_saida)} ${r.hora_saida||''}.</div></div>
   <div class="fg"><label class="flbl">Feedback (visível ao solicitante)</label><textarea class="fi" id="ap-feed" rows="3" style="resize:vertical"></textarea></div>`;
-  $('ap-ftr').innerHTML=`<button class="btn btn-ghost" onclick="cov('ov-ap')">Cancelar</button><button class="btn ${acao==='aprovar'?'btn-g':'btn-danger'}" onclick="confAp('${acao}')"><i class="ti ${acao==='aprovar'?'ti-check':'ti-x'}"></i>Confirmar</button>`;
+  $('ap-ftr').innerHTML=`<button class="btn btn-ghost" onclick="cov('ov-ap')">Cancelar</button><button class="btn ${acao==='aprovar'?'btn-g':'btn-danger'}" id="ap-confirm-btn" onclick="confAp('${acao}')"><i class="ti ${acao==='aprovar'?'ti-check':'ti-x'}"></i>Confirmar</button>`;
   ov('ov-ap');
 }
 async function confAp(acao){
+  if(_apProcessando)return;
+  _apProcessando=true;
+  // Desabilita botão imediatamente para evitar duplo clique
+  const btn=$('ap-confirm-btn');
+  if(btn){btn.disabled=true;btn.style.opacity='0.5';}
   const st=acao==='aprovar'?'aprovado':'negado',feed=$('ap-feed').value.trim();
   const{error}=await SB.from('reservas').update({status:st,feedback:feed}).eq('id',curApId);
-  if(error){toast('Erro: '+(error.message),'err');return}
-  cov('ov-ap');renderAprov();renderAll();
+  if(error){
+    toast('Erro: '+(error.message),'err');
+    _apProcessando=false;
+    if(btn){btn.disabled=false;btn.style.opacity='';}
+    return;
+  }
+  cov('ov-ap');
   await loadData();
+  renderAprov();renderAll();
   const res=reservas.find(x=>x.id===curApId);
   if(res){
     const solUser=cpfs.find(u=>u.nome===res.responsavel);
@@ -1798,6 +1811,7 @@ _Bruno Moreno — UniFECAF / Colégio SER_`;
     }
   }
   toast(acao==='aprovar'?'Reserva aprovada!':'Reserva negada.',acao==='aprovar'?'ok':'info');
+  _apProcessando=false;
 }
 function abrirEditRes(id){
   const r=reservas.find(x=>x.id===id);if(!r)return;
