@@ -1090,17 +1090,33 @@ function renderStats(){
   $('chips-bar').innerHTML=`<div class="chip"><div class="chip-dot" style="background:var(--green)"></div><div><span class="chip-n">${disp}</span><span class="chip-l">Disponíveis</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--blue3)"></div><div><span class="chip-n">${uso}</span><span class="chip-l">Em uso</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--warn)"></div><div><span class="chip-n">${res}</span><span class="chip-l">Reservados</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--danger)"></div><div><span class="chip-n">${mnt}</span><span class="chip-l">Manutenção</span></div></div>`;
 }
 function precisaAbastecimento(vid){
-  // Verifica se a última reserva concluída deste veículo tem 'abastecimento' nas condições
   const ultimas=reservas.filter(r=>r.veiculo_id===vid&&r.status==='concluido'&&r.checklist?.retorno_cond);
-  if(!ultimas.length)return false;
+  if(!ultimas.length)return{precisa:false};
   const ultima=ultimas.sort((a,b)=>b.id-a.id)[0];
-  return (ultima.checklist.retorno_cond||'').includes('abastecimento');
+  const precisa=(ultima.checklist.retorno_cond||'').includes('abastecimento')&&!ultima.checklist.abastecido;
+  return{precisa,rid:ultima.id};
+}
+async function marcarAbastecido(rid){
+  if(!adminLogado){toast('Acesso restrito ao administrador.','err');return;}
+  if(!confirm('Confirmar que o veículo foi abastecido? O aviso será removido.'))return;
+  const r=reservas.find(x=>x.id===rid);
+  if(!r)return;
+  const ck={...(r.checklist||{}),abastecido:true,abastecido_em:new Date().toISOString()};
+  const{error}=await SB.from('reservas').update({checklist:ck}).eq('id',rid);
+  if(error){toast('Erro: '+(error.message||error.code),'err');return;}
+  await loadData();renderAll();toast('✓ Veículo marcado como abastecido!','ok');
 }
 function renderVgrid(){
   $('vgrid').innerHTML=veiculos.map(v=>{
     const s=vSt(v);
-    const abast=precisaAbastecimento(v.id);
-    const abastBadge=abast?`<div style="display:flex;align-items:center;gap:4px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;color:#92400E;margin-top:6px"><i class="ti ti-gas-station" style="font-size:13px"></i>Necessita abastecimento</div>`:'';
+    const {precisa,rid}=precisaAbastecimento(v.id);
+    const abastBadge=precisa?`
+      <div style="display:flex;align-items:center;justify-content:space-between;background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:6px 10px;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#92400E">
+          <i class="ti ti-gas-station" style="font-size:14px"></i> Necessita abastecimento
+        </div>
+        ${adminLogado?`<button onclick="marcarAbastecido(${rid})" style="background:#F59E0B;border:none;color:#fff;font-size:10px;font-weight:700;font-family:var(--fh);padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap"><i class="ti ti-check" style="font-size:11px"></i> Abastecido</button>`:''}
+      </div>`:'';
     return`<div class="vcard"><div class="vcard-bar ${s.bar}"></div><div class="vcard-body"><div class="vcard-top"><div style="display:flex;align-items:center;gap:9px"><div class="vc-ic"><i class="ti ti-car"></i></div><div><div class="vc-name">${v.nome}</div><div class="vc-model">${v.modelo||''}</div></div></div><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></div><div><span class="vc-plate">${v.placa}</span></div><div class="vc-rows"><div class="vc-row"><strong>Local</strong>${v.localizacao||'—'}</div><div class="vc-row"><strong>Km</strong>${(v.km_atual||0).toLocaleString('pt-BR')}</div>${v.obs?`<div class="vc-row" style="color:var(--warn);font-size:10px"><i class="ti ti-alert-circle"></i>${v.obs}</div>`:''}</div>${abastBadge}</div></div>`;
   }).join('')||'<div class="empty" style="grid-column:1/-1"><i class="ti ti-car-off"></i><h4>Nenhum veículo</h4></div>';
 }
