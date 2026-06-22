@@ -1097,7 +1097,8 @@ function precisaAbastecimento(vid){
   return{precisa,rid:ultima.id};
 }
 async function marcarAbastecido(rid){
-  if(!adminLogado){toast('Acesso restrito ao administrador.','err');return;}
+  const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
+  if(!adminLogado&&!isSuperAdmin){toast('Acesso restrito ao administrador.','err');return;}
   if(!confirm('Confirmar que o veículo foi abastecido? O aviso será removido.'))return;
   const r=reservas.find(x=>x.id===rid);
   if(!r)return;
@@ -1115,7 +1116,7 @@ function renderVgrid(){
         <div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#92400E">
           <i class="ti ti-gas-station" style="font-size:14px"></i> Necessita abastecimento
         </div>
-        ${adminLogado?`<button onclick="marcarAbastecido(${rid})" style="background:#F59E0B;border:none;color:#fff;font-size:10px;font-weight:700;font-family:var(--fh);padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap"><i class="ti ti-check" style="font-size:11px"></i> Abastecido</button>`:''}
+        ${(adminLogado||currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF)?`<button onclick="marcarAbastecido(${rid})" style="background:#F59E0B;border:none;color:#fff;font-size:10px;font-weight:700;font-family:var(--fh);padding:3px 9px;border-radius:5px;cursor:pointer;white-space:nowrap"><i class="ti ti-check" style="font-size:11px"></i> Abastecido</button>`:''}
       </div>`:'';
     return`<div class="vcard"><div class="vcard-bar ${s.bar}"></div><div class="vcard-body"><div class="vcard-top"><div style="display:flex;align-items:center;gap:9px"><div class="vc-ic"><i class="ti ti-car"></i></div><div><div class="vc-name">${v.nome}</div><div class="vc-model">${v.modelo||''}</div></div></div><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></div><div><span class="vc-plate">${v.placa}</span></div><div class="vc-rows"><div class="vc-row"><strong>Local</strong>${v.localizacao||'—'}</div><div class="vc-row"><strong>Km</strong>${(v.km_atual||0).toLocaleString('pt-BR')}</div>${v.obs?`<div class="vc-row" style="color:var(--warn);font-size:10px"><i class="ti ti-alert-circle"></i>${v.obs}</div>`:''}</div>${abastBadge}</div></div>`;
   }).join('')||'<div class="empty" style="grid-column:1/-1"><i class="ti ti-car-off"></i><h4>Nenhum veículo</h4></div>';
