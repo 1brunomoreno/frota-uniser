@@ -656,12 +656,19 @@ tr:hover td{background:var(--gray-50)}
           <div id="ck-adm-list"></div>
         </div>
         <div class="admin-pane" id="ap-lavagem">
+          <!-- Resumo de pagamentos -->
+          <div id="lav-pag-resumo" style="display:none;margin-bottom:12px"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
             <select class="fi" style="flex:1;min-width:130px;font-size:12px" id="lavf-vei" onchange="renderLavAdm()"><option value="">Todos veículos</option></select>
             <select class="fi" style="flex:1;min-width:130px;font-size:12px" id="lavf-st" onchange="renderLavAdm()">
               <option value="">Todos status</option>
-              <option value="pendente">Pendente</option>
-              <option value="confirmado">Confirmado</option>
+              <option value="pendente">⏳ Pendente</option>
+              <option value="confirmado">✅ Confirmado</option>
+            </select>
+            <select class="fi" style="flex:1;min-width:130px;font-size:12px" id="lavf-pag" onchange="renderLavAdm()">
+              <option value="">Todos pagamentos</option>
+              <option value="pag_pendente">💰 Pagamento pendente</option>
+              <option value="pago">✅ Pago</option>
             </select>
           </div>
           <div id="lav-adm-list"></div>
@@ -1280,12 +1287,42 @@ async function enviarReserva(){
   const dst=$('rv-dst').value.trim(),obs=$('rv-obs').value.trim();
   if(!dep||!resp||!data||!hsai||!hret||!dst){toast('Preencha todos os campos obrigatórios.','err');return}
   if(hret<=hsai){toast('A hora de retorno deve ser após a hora de saída.','err');return}
-  // Bloqueia se houver aprovado no período
   const confAprov=reservas.find(r=>String(r.veiculo_id)===String(vId)&&r.status==='aprovado'&&r.data_saida===data&&!(r.hora_retorno<=hsai||r.hora_saida>=hret));
   if(confAprov){toast('Horário bloqueado: já existe uma reserva aprovada neste período.','err');return}
-  const{error}=await SB.from('reservas').insert([{veiculo_id:vId,departamento:dep,responsavel:resp,contato:tel,data_saida:data,data_retorno:data,hora_saida:hsai,hora_retorno:hret,destino:dst,observacoes:obs,status:'pendente',feedback:'',checklist:{},criado_em:new Date().toISOString()}]).select();
+  const{data:rows,error}=await SB.from('reservas').insert([{veiculo_id:vId,departamento:dep,responsavel:resp,contato:tel,data_saida:data,data_retorno:data,hora_saida:hsai,hora_retorno:hret,destino:dst,observacoes:obs,status:'pendente',feedback:'',checklist:{},criado_em:new Date().toISOString()}]).select();
   if(error){toast('Erro ao enviar: '+(error.message||error.code),'err');console.error(error);return}
   await loadData();renderAll();checkConflictLive();toast('✓ Solicitação enviada! Aguardando aprovação.','ok');limparRv();
+
+  // Notificar admin via WhatsApp
+  const v=veiculos.find(x=>String(x.id)===String(vId));
+  const protocolo=rows?.[0]?.id?String(rows[0].id).padStart(5,'0'):'—';
+  const primeiroNome=resp.split(' ')[0];
+  const msg=
+`🚗 *NOVA SOLICITAÇÃO DE RESERVA — Frota Institucional*
+
+Olá, Bruno! Uma nova solicitação foi enviada e aguarda sua aprovação.
+
+👤 *Solicitante:* ${resp}
+🏢 *Departamento:* ${dep}
+${tel?`📞 *Telefone:* ${tel}\n`:''}🚘 *Veículo:* ${v?.nome||'—'}
+📅 *Data:* ${fmt(data)}
+🕗 *Período:* ${hsai} às ${hret}
+📍 *Destino:* ${dst}${obs?'\n📝 *Observações:* '+obs:''}
+🔖 *Protocolo:* #${protocolo}
+
+Acesse o painel para aprovar ou negar:
+https://1brunomoreno.github.io/frota-uniser/frota_teste_v1.html
+
+_${primeiroNome} — ${dep}_`;
+
+  // Número do admin (Bruno)
+  const adminTel='5511962528030';
+  const link=`https://wa.me/${adminTel}?text=${encodeURIComponent(msg)}`;
+  setTimeout(()=>{
+    if(confirm('✅ Solicitação enviada!\n\nDeseja notificar o administrador via WhatsApp agora?')){
+      window.open(link,'_blank');
+    }
+  },400);
 }
 
 /* CALENDÁRIO */
@@ -2240,23 +2277,53 @@ async function agendarLavagem(){
 
 /* ADMIN: lista lavagens */
 function renderLavAdm(){
-  const fv=$('lavf-vei')?.value, fs=$('lavf-st')?.value;
+  const fv=$('lavf-vei')?.value, fs=$('lavf-st')?.value, fp=$('lavf-pag')?.value;
   if(!$('lavf-vei').options.length||$('lavf-vei').options.length===1)
     veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome;$('lavf-vei').appendChild(o);});
   let list=[...lavagens];
   if(fv)list=list.filter(l=>l.veiculo_id==fv);
   if(fs)list=list.filter(l=>l.status===fs);
+  if(fp==='pago')list=list.filter(l=>l.pagamento==='pago');
+  if(fp==='pag_pendente')list=list.filter(l=>l.status==='confirmado'&&l.pagamento!=='pago');
+
+  // Resumo financeiro — só lavagens confirmadas
+  const confirmadas=lavagens.filter(l=>l.status==='confirmado');
+  const pagas=confirmadas.filter(l=>l.pagamento==='pago').length;
+  const pendPag=confirmadas.filter(l=>l.pagamento!=='pago').length;
+  const resumo=$('lav-pag-resumo');
+  if(resumo&&confirmadas.length>0){
+    resumo.style.display='grid';
+    resumo.style.gridTemplateColumns='repeat(3,1fr)';
+    resumo.style.gap='8px';
+    resumo.innerHTML=`
+      <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:var(--r10);padding:11px 13px;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-circle-check" style="color:var(--green);font-size:20px;flex-shrink:0"></i>
+        <div><div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--green)">${pagas}</div><div style="font-size:10px;color:var(--gray-500);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Pago${pagas!==1?'s':''}</div></div>
+      </div>
+      <div style="background:#FEF3C7;border:1.5px solid #FDE68A;border-radius:var(--r10);padding:11px 13px;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-clock-dollar" style="color:#D97706;font-size:20px;flex-shrink:0"></i>
+        <div><div style="font-family:var(--fh);font-size:18px;font-weight:800;color:#D97706">${pendPag}</div><div style="font-size:10px;color:var(--gray-500);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Pagamento pendente</div></div>
+      </div>
+      <div style="background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:var(--r10);padding:11px 13px;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-droplet" style="color:#0EA5E9;font-size:20px;flex-shrink:0"></i>
+        <div><div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--gray-700)">${confirmadas.length}</div><div style="font-size:10px;color:var(--gray-500);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Total confirmadas</div></div>
+      </div>`;
+  } else if(resumo){ resumo.style.display='none'; }
+
   const el=$('lav-adm-list');
   if(!list.length){el.innerHTML='<div class="empty"><i class="ti ti-droplet-off"></i><h4>Nenhuma lavagem</h4></div>';return}
   el.innerHTML=list.map(l=>{
     const v=veiculos.find(x=>x.id===l.veiculo_id);
     const hist=lavagens.filter(x=>x.veiculo_id===l.veiculo_id&&x.status==='confirmado');
     const tipoLabel={simples:'Simples',completa:'Completa',polimento:'Polimento',higienizacao:'Higienização'};
+    const pago=l.pagamento==='pago';
+    const pagBadge=l.status==='confirmado'?`<span style="display:inline-flex;align-items:center;gap:3px;background:${pago?'#F0FDF4':'#FEF3C7'};border:1px solid ${pago?'#BBF7D0':'#FDE68A'};border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;color:${pago?'var(--green2)':'#92400E'};font-family:var(--fh)"><i class="ti ${pago?'ti-circle-check':'ti-clock-dollar'}"></i>${pago?'Pago':'Pagamento pendente'}</span>`:'';
     return`<div class="lav-card">
       <div class="lav-top">
         <div>
           <div class="lav-vname"><i class="ti ti-droplet" style="color:#0EA5E9"></i> ${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></div>
           <div class="lav-vsub">${fmt(l.data_agendada)} às ${l.hora_agendada} · ${tipoLabel[l.tipo_lavagem]||l.tipo_lavagem} · Agendado por: ${l.agendado_por}</div>
+          ${pagBadge?`<div style="margin-top:5px">${pagBadge}</div>`:''}
         </div>
         <span class="lav-badge ${l.status==='confirmado'?'lav-conf':'lav-pend'}">${l.status==='confirmado'?'✅ Confirmado':'⏳ Pendente'}</span>
       </div>
@@ -2267,15 +2334,18 @@ function renderLavAdm(){
           <button class="btn btn-g btn-sm" onclick="abrirConfLav(${l.id})"><i class="ti ti-check"></i>Confirmar lavagem</button>
         </div>
       </div>`:''}
-      ${l.status==='confirmado'?`<div class="lav-body" style="background:var(--green-l)">
+      ${l.status==='confirmado'?`<div class="lav-body" style="background:${pago?'var(--green-l)':'#FFFBEB'}">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px">
           <div><span style="color:var(--gray-400)">Concluída em:</span><br><strong>${fmt(l.data_confirmada)} ${l.hora_confirmada||''}</strong></div>
           <div><span style="color:var(--gray-400)">Realizada por:</span><br><strong>${l.confirmado_por||'—'}</strong></div>
           <div><span style="color:var(--gray-400)">Total do veículo:</span><br><strong>${hist.length} lavagem${hist.length!==1?'s':''}</strong></div>
         </div>
         ${l.obs_confirmacao?`<div style="font-size:12px;color:var(--green2);margin-top:8px"><i class="ti ti-notes"></i> ${l.obs_confirmacao}</div>`:''}
-        <div style="display:flex;justify-content:flex-end;margin-top:10px">
-          <button class="btn btn-danger btn-sm" onclick="delLavagem(${l.id})"><i class="ti ti-trash"></i>Excluir confirmação</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:6px">
+          <div>
+            ${!pago?`<button class="btn btn-g btn-sm" onclick="marcarPago(${l.id})"><i class="ti ti-circle-check"></i> Confirmar pagamento</button>`:`<span style="font-size:11px;color:var(--green2);display:flex;align-items:center;gap:4px"><i class="ti ti-circle-check"></i> Pagamento confirmado${l.pago_em?' em '+fmt(l.pago_em):''}</span>`}
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="delLavagem(${l.id})"><i class="ti ti-trash"></i>Excluir</button>
         </div>
       </div>`:''}
     </div>`;
@@ -2315,7 +2385,19 @@ async function delLavagem(id){
   toast(l?.status==='confirmado'?'Registro excluído.':'Agendamento cancelado.','info');
 }
 
-/* Painel de estatísticas por veículo no relatório */
+async function marcarPago(id){
+  if(!confirm('Confirmar que o pagamento desta lavagem foi efetuado?'))return;
+  const hoje=new Date().toISOString().slice(0,10);
+  const{error}=await SB.from('lavagens').update({pagamento:'pago',pago_em:hoje}).eq('id',id);
+  if(error){
+    if(error.message?.includes('pagamento')||error.message?.includes('pago_em')){
+      toast('Execute o SQL de atualização do banco antes de usar esta função.','err');
+    } else { toast('Erro: '+error.message,'err'); }
+    return;
+  }
+  await loadLavagens();renderLavAdm();renderLavStats();
+  toast('✅ Pagamento confirmado!','ok');
+}
 function renderLavStats(){
   const el=document.getElementById('lav-stats-panel');
   if(!el)return;
