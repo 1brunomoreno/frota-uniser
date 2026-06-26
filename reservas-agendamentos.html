@@ -1012,6 +1012,29 @@ tr:hover td{background:var(--gray-50)}
 </div>
 <div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-abast')">Cancelar</button><button class="btn" style="background:#D97706;color:#fff" onclick="salvarAbastecimento()"><i class="ti ti-check"></i> Registrar</button></div></div></div>
 
+<!-- MODAL OUTROS CUSTOS -->
+<div class="ov" id="ov-outro-custo"><div class="modal"><div class="mhdr" style="background:#7C3AED"><h3><i class="ti ti-receipt"></i> Registrar Outro Custo</h3><button class="xbtn" onclick="cov('ov-outro-custo')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="fg"><label class="flbl">Veículo</label><select class="fi" id="oc-vei"></select></div>
+  <div class="g2">
+    <div class="fg"><label class="flbl">Data</label><input type="date" class="fi" id="oc-data"></div>
+    <div class="fg"><label class="flbl">Valor (R$) <span style="color:var(--danger)">*</span></label><input type="number" class="fi" id="oc-valor" placeholder="Ex: 80.00" step="0.01" min="0"></div>
+  </div>
+  <div class="fg"><label class="flbl">Categoria <span style="color:var(--danger)">*</span></label>
+    <select class="fi" id="oc-cat">
+      <option value="pedagio">Pedágio</option>
+      <option value="estacionamento">Estacionamento</option>
+      <option value="multa">Multa de trânsito</option>
+      <option value="documentacao">Documentação / IPVA / Licenciamento</option>
+      <option value="seguro">Seguro</option>
+      <option value="outros">Outros</option>
+    </select>
+  </div>
+  <div class="fg"><label class="flbl">Descrição / Responsável</label><input class="fi" id="oc-desc" placeholder="Descreva o custo ou informe o responsável"></div>
+  <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="oc-obs" rows="2" style="resize:vertical"></textarea></div>
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-outro-custo')">Cancelar</button><button class="btn" style="background:#7C3AED;color:#fff" onclick="salvarOutroCusto()"><i class="ti ti-check"></i> Registrar</button></div></div></div>
+
 <script>
 /* ============================================================
    CONFIG — preencha antes de publicar
@@ -2805,6 +2828,55 @@ async function delAbastecimento(vid,idx){
   await loadData();renderCustos();toast('Abastecimento removido.','info');
 }
 
+const OC_CAT={pedagio:'Pedágio',estacionamento:'Estacionamento',multa:'Multa de trânsito',documentacao:'Documentação/IPVA',seguro:'Seguro',outros:'Outros'};
+
+function abrirOutroCusto(vid){
+  const s=$('oc-vei');
+  if(!s.options.length||s.options.length===1){
+    s.innerHTML='<option value="">Selecione</option>';
+    veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=`${v.nome} (${v.placa})`;s.appendChild(o);});
+  }
+  if(vid) s.value=vid;
+  $('oc-data').value=TODAY;
+  ['oc-valor','oc-desc','oc-obs'].forEach(id=>{const el=$(id);if(el)el.value='';});
+  $('oc-cat').value='pedagio';
+  ov('ov-outro-custo');
+}
+
+async function salvarOutroCusto(){
+  const vid=$('oc-vei').value;
+  const data=$('oc-data').value;
+  const valor=parseFloat($('oc-valor').value);
+  if(!vid){toast('Selecione o veículo.','err');return;}
+  if(!data){toast('Informe a data.','err');return;}
+  if(!valor||valor<=0){toast('Informe o valor.','err');return;}
+  const cat=$('oc-cat').value;
+  const desc=$('oc-desc').value.trim()||null;
+  const obs=$('oc-obs').value.trim()||null;
+  const v=veiculos.find(x=>String(x.id)===String(vid));
+  const entrada={data,valor,cat};
+  if(desc) entrada.desc=desc;
+  if(obs) entrada.obs=obs;
+  const lista=[...(v.outros_custos||[]),entrada];
+  const{error}=await SB.from('veiculos').update({outros_custos:lista}).eq('id',vid);
+  if(error){toast('Erro: '+error.message,'err');return;}
+  cov('ov-outro-custo');
+  await loadData();
+  const tabOn=$('atb-custos')?.classList.contains('on');
+  if(tabOn)renderCustos();
+  toast('✓ Custo registrado!','ok');
+}
+
+async function delOutroCusto(vid,idx){
+  if(!confirm('Remover este custo?'))return;
+  const v=veiculos.find(x=>String(x.id)===String(vid));
+  const lista=[...(v.outros_custos||[])];
+  lista.splice(idx,1);
+  const{error}=await SB.from('veiculos').update({outros_custos:lista}).eq('id',vid);
+  if(error){toast('Erro','err');return;}
+  await loadData();renderCustos();toast('Custo removido.','info');
+}
+
 function renderCustos(){
   const el=$('cst-body');if(!el)return;
   const fv=$('cst-vei')?.value;
@@ -2816,7 +2888,6 @@ function renderCustos(){
   const veicFiltrados=fv?veiculos.filter(v=>String(v.id)===fv):veiculos;
   let grandTotal=0;
   const rows=veicFiltrados.map(v=>{
-    // Manutenções com valor no período
     const mnts=(v.manutencoes||[]).filter(m=>{
       if(!m.valor)return false;
       if(de&&m.data<de)return false;
@@ -2825,7 +2896,6 @@ function renderCustos(){
     });
     const custoManut=mnts.reduce((s,m)=>s+(m.valor||0),0);
 
-    // Lavagens pagas no período
     const lavsVei=lavagens.filter(l=>{
       if(String(l.veiculo_id)!==String(v.id))return false;
       if(l.pagamento!=='pago')return false;
@@ -2835,32 +2905,47 @@ function renderCustos(){
       return true;
     });
 
-    // Abastecimentos no período
     const abasts=(v.abastecimentos||[]).filter(a=>{
       if(de&&a.data<de)return false;
       if(ate&&a.data>ate)return false;
       return true;
     }).sort((a,b)=>b.data.localeCompare(a.data));
-    // Add original index for deletion
     abasts.forEach(a=>{a._origIdx=(v.abastecimentos||[]).findIndex(x=>x===a);});
     const custoAbast=abasts.reduce((s,a)=>s+(a.valor||0),0);
+    const abstsComLitro=abasts.filter(a=>a.litros&&a.valor);
+    const totalLitrosV=abstsComLitro.reduce((s,a)=>s+(a.litros||0),0);
+    const totalValorV=abstsComLitro.reduce((s,a)=>s+(a.valor||0),0);
+    const cplMedio=totalLitrosV>0?totalValorV/totalLitrosV:null;
 
-    const totalVei=custoManut+custoAbast;
+    const outros=(v.outros_custos||[]).filter(o=>{
+      if(de&&o.data<de)return false;
+      if(ate&&o.data>ate)return false;
+      return true;
+    }).sort((a,b)=>b.data.localeCompare(a.data));
+    outros.forEach(o=>{o._origIdx=(v.outros_custos||[]).findIndex(x=>x===o);});
+    const custoOutros=outros.reduce((s,o)=>s+(o.valor||0),0);
+
+    const totalVei=custoManut+custoAbast+custoOutros;
     grandTotal+=totalVei;
 
-    if(custoManut===0&&lavsVei.length===0&&abasts.length===0)return null;
-    return{v,mnts,custoManut,lavsVei,abasts,custoAbast,totalVei};
+    if(custoManut===0&&lavsVei.length===0&&abasts.length===0&&outros.length===0)return null;
+    return{v,mnts,custoManut,lavsVei,abasts,custoAbast,cplMedio,totalLitrosV,outros,custoOutros,totalVei};
   }).filter(Boolean);
 
   if(!rows.length){
-    el.innerHTML=`<div class="empty"><i class="ti ti-coin-off"></i><h4>Nenhum custo registrado${mes?' em '+new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):''}</h4><p>Registre manutenções ou abastecimentos com valor para visualizar os custos.</p></div>`;
+    el.innerHTML=`<div class="empty"><i class="ti ti-coin-off"></i><h4>Nenhum custo registrado${mes?' em '+new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'' }</h4><p>Registre abastecimentos, manutenções ou outros custos para visualizar.</p></div>`;
     return;
   }
 
   const periodoLabel=mes?new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Todo o período';
   const totalAbast=rows.reduce((s,r)=>s+r.custoAbast,0);
   const totalManut=rows.reduce((s,r)=>s+r.custoManut,0);
+  const totalOutros=rows.reduce((s,r)=>s+r.custoOutros,0);
   const totalLavs=rows.reduce((s,r)=>s+r.lavsVei.length,0);
+  const allAbstLitro=rows.flatMap(r=>r.abasts.filter(a=>a.litros&&a.valor));
+  const sumLit=allAbstLitro.reduce((s,a)=>s+(a.litros||0),0);
+  const sumVal=allAbstLitro.reduce((s,a)=>s+(a.valor||0),0);
+  const cplGeral=sumLit>0?sumVal/sumLit:null;
 
   el.innerHTML=`
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:16px">
@@ -2871,42 +2956,51 @@ function renderCustos(){
       <div style="background:#FEF3C7;border:1.5px solid #FDE68A;border-radius:var(--r10);padding:12px 14px">
         <div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.4px">⛽ Combustível</div>
         <div style="font-family:var(--fh);font-size:22px;font-weight:800;color:#D97706">R$ ${totalAbast.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+        ${cplGeral?`<div style="font-size:10px;color:#92400E;margin-top:2px">Média: R$ ${cplGeral.toFixed(2)}/L · ${sumLit.toFixed(1)}L</div>`:''}
       </div>
       <div style="background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:var(--r10);padding:12px 14px">
         <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px">🔧 Manutenções</div>
         <div style="font-family:var(--fh);font-size:22px;font-weight:800;color:var(--gray-700)">R$ ${totalManut.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      </div>
+      <div style="background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:var(--r10);padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:#5B21B6;text-transform:uppercase;letter-spacing:.4px">📋 Outros custos</div>
+        <div style="font-family:var(--fh);font-size:22px;font-weight:800;color:#7C3AED">R$ ${totalOutros.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
       </div>
       <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:var(--r10);padding:12px 14px">
         <div style="font-size:10px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.4px">💧 Lavagens pagas</div>
         <div style="font-family:var(--fh);font-size:22px;font-weight:800;color:#166534">${totalLavs}</div>
       </div>
     </div>
-
-    ${rows.map(r=>`
+    ${rows.map(r=>{
+      const hasAbast=r.abasts.length>0;
+      const hasMnt=r.mnts.length>0;
+      const hasOtros=r.outros.length>0;
+      const hasLav=r.lavsVei.length>0;
+      return`
     <div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:14px 16px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px">
         <div>
           <div style="font-family:var(--fh);font-size:14px;font-weight:700;color:var(--gray-700)">${r.v.nome}</div>
           <div style="font-family:monospace;font-size:11px;color:var(--gray-400)">${r.v.placa}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <button class="btn btn-sm" style="background:#D97706;color:#fff;font-size:11px" onclick="abrirAbastecimento('${r.v.id}')"><i class="ti ti-gas-station"></i> + Abastecimento</button>
+          <button class="btn btn-sm" style="background:#7C3AED;color:#fff;font-size:11px" onclick="abrirOutroCusto('${r.v.id}')"><i class="ti ti-receipt"></i> + Outro custo</button>
           <div style="font-family:var(--fh);font-size:18px;font-weight:800;color:#92400E">R$ ${r.totalVei.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
         </div>
       </div>
-
-      ${r.abasts.length?`
-      <div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+      ${hasAbast?`
+      <div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <i class="ti ti-gas-station"></i> Abastecimentos
-        <span style="font-weight:400;color:var(--gray-400)">Total: R$ ${r.custoAbast.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+        <span style="font-weight:400;color:var(--gray-400)">Total: R$ ${r.custoAbast.toLocaleString('pt-BR',{minimumFractionDigits:2})}${r.cplMedio?` &nbsp;·&nbsp; <span style="color:#D97706;font-weight:600">Média: R$ ${r.cplMedio.toFixed(2)}/L (${r.totalLitrosV.toFixed(1)}L)</span>`:''}</span>
       </div>
-      ${r.abasts.map((a,idx)=>{
-        const cpl=a.cpl?` · R$ ${a.cpl.toFixed(2)}/L`:'';
+      ${r.abasts.map(a=>{
+        const cpl=a.cpl?`<span style="background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:700;margin-left:4px">R$ ${a.cpl.toFixed(2)}/L</span>`:'';
         const litros=a.litros?` · ${a.litros}L`:'';
         return`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--gray-100);font-size:12px">
           <div>
             <span style="font-weight:600;color:var(--gray-700)">${fmt(a.data)}</span>
-            <span style="color:var(--gray-400);margin-left:6px">${a.tipo||''}${litros}${cpl}${a.posto?' · '+a.posto:''}</span>
+            <span style="color:var(--gray-400);margin-left:6px">${a.tipo||''  }${litros}${a.posto?' · '+a.posto:'' }</span>${cpl}
             ${a.km?`<span style="color:var(--gray-400);margin-left:6px">· Km: ${a.km.toLocaleString('pt-BR')}</span>`:''}
             ${a.obs?`<div style="color:var(--gray-400);font-size:11px">${a.obs}</div>`:''}
           </div>
@@ -2915,25 +3009,42 @@ function renderCustos(){
             <button class="btn btn-danger btn-sm" style="padding:2px 6px" onclick="delAbastecimento('${r.v.id}',${a._origIdx})"><i class="ti ti-trash" style="font-size:11px"></i></button>
           </div>
         </div>`;
-      }).join('')}`:''}
-
-      ${r.mnts.length?`
-      <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;margin-top:${r.abasts.length?10:0}px;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+      }).join('')}`:''  }
+      ${hasMnt?`
+      <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;margin-top:${hasAbast?10:0}px;margin-bottom:6px;display:flex;align-items:center;gap:6px">
         <i class="ti ti-tool"></i> Manutenções
         <span style="font-weight:400">Total: R$ ${r.custoManut.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
       </div>
       ${r.mnts.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:12px">
-        <span style="color:var(--gray-600)">${MTYPE_MAP[m.tipo]||m.tipo} <span style="color:var(--gray-400)">· ${fmt(m.data)}${m.resp?' · '+m.resp:''}</span></span>
+        <span style="color:var(--gray-600)">${MTYPE_MAP[m.tipo]||m.tipo} <span style="color:var(--gray-400)">· ${fmt(m.data)}${m.resp?' · '+m.resp:'' }</span></span>
         <span style="font-weight:700;color:#92400E">R$ ${m.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
-      </div>`).join('')}`:''}
-
-      ${r.lavsVei.length?`
-      <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;margin-top:${r.abasts.length||r.mnts.length?10:0}px;margin-bottom:4px;display:flex;align-items:center;gap:6px">
+      </div>`).join('')}`:''  }
+      ${hasOtros?`
+      <div style="font-size:10px;font-weight:700;color:#5B21B6;text-transform:uppercase;letter-spacing:.4px;margin-top:${hasAbast||hasMnt?10:0}px;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+        <i class="ti ti-receipt"></i> Outros custos
+        <span style="font-weight:400;color:var(--gray-400)">Total: R$ ${r.custoOutros.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+      </div>
+      ${r.outros.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--gray-100);font-size:12px">
+        <div>
+          <span style="font-weight:600;color:var(--gray-700)">${fmt(o.data)}</span>
+          <span style="background:#EDE9FE;color:#5B21B6;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600;margin-left:6px">${OC_CAT[o.cat]||o.cat}</span>
+          ${o.desc?`<span style="color:var(--gray-400);margin-left:6px">${o.desc}</span>`:''}
+          ${o.obs?`<div style="color:var(--gray-400);font-size:11px">${o.obs}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span style="font-weight:700;color:#7C3AED">R$ ${o.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+          <button class="btn btn-danger btn-sm" style="padding:2px 6px" onclick="delOutroCusto('${r.v.id}',${o._origIdx})"><i class="ti ti-trash" style="font-size:11px"></i></button>
+        </div>
+      </div>`).join('')}`:''  }
+      ${hasLav?`
+      <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;margin-top:${hasAbast||hasMnt||hasOtros?10:0}px;margin-bottom:4px;display:flex;align-items:center;gap:6px">
         <i class="ti ti-droplet"></i> Lavagens pagas (${r.lavsVei.length})
       </div>
-      ${r.lavsVei.map(l=>`<div style="font-size:12px;color:var(--gray-500);padding:3px 0"><i class="ti ti-droplet" style="color:#0EA5E9"></i> ${l.tipo_lavagem||'Lavagem'} — ${fmt(l.pago_em||l.data_confirmada||l.data_agendada)}</div>`).join('')}`:''}
-    </div>`).join('')}`;
+      ${r.lavsVei.map(l=>`<div style="font-size:12px;color:var(--gray-500);padding:3px 0"><i class="ti ti-droplet" style="color:#0EA5E9"></i> ${l.tipo_lavagem||'Lavagem'} — ${fmt(l.pago_em||l.data_confirmada||l.data_agendada)}</div>`).join('')}`:''  }
+    </div>`;
+    }).join('')}`;
 }
+
 
 
 
