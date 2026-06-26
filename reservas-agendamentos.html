@@ -985,6 +985,7 @@ tr:hover td{background:var(--gray-50)}
     <div class="fg"><label class="flbl">Valor pago (R$) <span style="font-size:10px;color:var(--gray-400)">(opcional)</span></label><input type="number" class="fi" id="mn-valor" placeholder="Ex: 350.00" step="0.01" min="0"></div>
     <div class="fg"><label class="flbl">Oficina / Responsável</label><input class="fi" id="mn-resp" placeholder="Nome da oficina"></div>
   </div>
+  <div class="fg" id="mn-vei-wrap" style="display:none"><label class="flbl">Veículo <span style="color:var(--danger)">*</span></label><select class="fi" id="mn-vei-sel"></select></div>
   <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="mn-o" rows="2" style="resize:vertical"></textarea></div>
   <input type="hidden" id="mn-v">
 </div>
@@ -2029,23 +2030,40 @@ function renderRel(){
 }
 function abrirProb(vid){$('pb-v').value=vid;['pb-d','pb-r'].forEach(id=>$(id).value='');ov('ov-prob');}
 async function salvarProb(){const vid=$('pb-v').value,tipo=$('pb-t').value,desc=$('pb-d').value.trim(),resp=$('pb-r').value.trim();if(!desc||!resp){toast('Preencha descrição e responsável.','err');return}const v=veiculos.find(x=>x.id==vid);const{error}=await SB.from('veiculos').update({problemas:[...(v.problemas||[]),{data:TODAY,tipo,desc,resp}]}).eq('id',vid);if(error){toast('Erro','err');return}cov('ov-prob');await loadData();renderRel();toast('Registrado!','info');}
-function abrirManut(vid){$('mn-v').value=vid;$('mn-d').value=TODAY;['mn-k','mn-p','mn-o','mn-valor','mn-resp'].forEach(id=>{const el=$(id);if(el)el.value='';});ov('ov-mn');}
+function abrirManut(vid){
+  // Chamado a partir de um veículo específico — esconde o select
+  $('mn-v').value=vid;
+  const wrap=$('mn-vei-wrap');if(wrap)wrap.style.display='none';
+  $('mn-d').value=TODAY;
+  ['mn-k','mn-p','mn-o','mn-valor','mn-resp'].forEach(id=>{const el=$(id);if(el)el.value='';});
+  ov('ov-mn');
+}
 function abrirManutAdm(){
-  const s=$('mn-v');
-  if(!s.options.length||s.options.length===1){
-    s.innerHTML='<option value="">Selecione</option>';
+  // Chamado da aba Manutenção — mostra select de veículo
+  $('mn-v').value='';
+  const wrap=$('mn-vei-wrap');
+  if(wrap){
+    wrap.style.display='';
+    const s=$('mn-vei-sel');
+    s.innerHTML='<option value="">Selecione o veículo</option>';
     veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=`${v.nome} (${v.placa})`;s.appendChild(o);});
   }
-  $('mn-d').value=TODAY;['mn-k','mn-p','mn-o','mn-valor','mn-resp'].forEach(id=>{const el=$(id);if(el)el.value='';});
+  $('mn-d').value=TODAY;
+  ['mn-k','mn-p','mn-o','mn-valor','mn-resp'].forEach(id=>{const el=$(id);if(el)el.value='';});
   ov('ov-mn');
 }
 async function salvarManut(){
-  const vid=$('mn-v').value,tipo=$('mn-t').value,data=$('mn-d').value;
+  // vid vem do hidden (quando aberto via veículo específico) ou do select visível
+  const vid=$('mn-v').value||$('mn-vei-sel')?.value;
+  if(!vid){toast('Selecione o veículo.','err');return;}
+  const tipo=$('mn-t').value,data=$('mn-d').value;
+  if(!data){toast('Informe a data.','err');return;}
   const km=parseInt($('mn-k').value)||0,proxKm=parseInt($('mn-p').value)||null;
   const obs=$('mn-o').value.trim();
   const valor=parseFloat($('mn-valor')?.value)||null;
   const resp=$('mn-resp')?.value.trim()||null;
-  const v=veiculos.find(x=>x.id==vid);
+  const v=veiculos.find(x=>String(x.id)===String(vid));
+  if(!v){toast('Veículo não encontrado.','err');return;}
   const entrada={tipo,data,km,obs};
   if(proxKm)entrada.proxKm=proxKm;
   if(valor)entrada.valor=valor;
