@@ -839,6 +839,23 @@ tr:hover td{background:var(--gray-50)}
 </div>
 <div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-sv')">Cancelar</button><button class="btn btn-p" onclick="salvarSV()"><i class="ti ti-check"></i> Atualizar</button></div></div></div>
 
+<!-- MODAL CORREÇÃO DE HODÔMETRO -->
+<div class="ov" id="ov-km"><div class="modal"><div class="mhdr" style="background:#0369A1"><h3><i class="ti ti-gauge"></i> Corrigir Hodômetro</h3><button class="xbtn" onclick="cov('ov-km')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="alert" style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:var(--r10);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1E40AF;display:flex;gap:8px;align-items:flex-start">
+    <i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px"></i>
+    <span>Use esta função para <strong>corrigir km incorretos</strong> registrados no sistema. O valor informado substituirá o km atual do veículo.</span>
+  </div>
+  <div class="fg"><label class="flbl">Veículo</label><input class="fi" id="km-nm" readonly></div>
+  <div class="g2">
+    <div class="fg"><label class="flbl">Km atual no sistema</label><input class="fi" id="km-atual-display" readonly style="background:var(--gray-50);color:var(--gray-400)"></div>
+    <div class="fg"><label class="flbl">Km correto <span style="color:var(--danger)">*</span></label><input type="number" class="fi" id="km-novo" placeholder="Ex: 45000" min="0"></div>
+  </div>
+  <div class="fg"><label class="flbl">Motivo da correção</label><input class="fi" id="km-motivo" placeholder="Ex: Km inicial informado incorretamente"></div>
+  <input type="hidden" id="km-vid">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-km')">Cancelar</button><button class="btn" style="background:#0369A1;color:#fff" onclick="salvarCorrecaoKm()"><i class="ti ti-check"></i> Confirmar correção</button></div></div></div>
+
 <div class="ov" id="ov-cpf"><div class="modal"><div class="mhdr"><h3 id="cpf-modal-tit">Cadastrar CPF autorizado</h3><button class="xbtn" onclick="cov('ov-cpf')"><i class="ti ti-x"></i></button></div>
 <div class="mbody">
   <div class="fg"><label class="flbl">CPF</label><input class="fi" id="cpf-f-num" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)" style="font-family:monospace;font-size:15px;letter-spacing:1px"></div>
@@ -1967,7 +1984,7 @@ async function delRes(id){if(!confirm('Remover esta reserva?'))return;const{erro
 
 /* VEÍCULOS ADMIN */
 function renderVeiculosAdm(){
-  $('vei-tbody').innerHTML=veiculos.map(v=>{const s=vSt(v);return`<tr><td><div class="td-p">${v.nome}</div><div style="font-size:10px;color:var(--gray-400)">${v.modelo||''}</div></td><td style="font-family:monospace">${v.placa}</td><td>${(v.km_atual||0).toLocaleString('pt-BR')}</td><td><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></td><td style="font-size:11px">${v.localizacao||'—'}</td><td><div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="abrirVeiModal(${v.id})"><i class="ti ti-edit"></i></button><button class="btn btn-warn btn-sm" onclick="abrirSV(${v.id})"><i class="ti ti-refresh"></i></button><button class="btn btn-danger btn-sm" onclick="delVei(${v.id})"><i class="ti ti-trash"></i></button></div></td></tr>`;}).join('')||`<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">Nenhum veículo.</td></tr>`;
+  $('vei-tbody').innerHTML=veiculos.map(v=>{const s=vSt(v);return`<tr><td><div class="td-p">${v.nome}</div><div style="font-size:10px;color:var(--gray-400)">${v.modelo||''}</div></td><td style="font-family:monospace">${v.placa}</td><td>${(v.km_atual||0).toLocaleString('pt-BR')}</td><td><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></td><td style="font-size:11px">${v.localizacao||'—'}</td><td><div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="abrirVeiModal(${v.id})" title="Editar veículo"><i class="ti ti-edit"></i></button><button class="btn btn-ghost btn-sm" style="color:#0369A1;border-color:#BFDBFE" onclick="abrirCorrecaoKm(${v.id})" title="Corrigir hodômetro"><i class="ti ti-gauge"></i></button><button class="btn btn-warn btn-sm" onclick="abrirSV(${v.id})" title="Alterar status"><i class="ti ti-refresh"></i></button><button class="btn btn-danger btn-sm" onclick="delVei(${v.id})" title="Excluir"><i class="ti ti-trash"></i></button></div></td></tr>`;}).join('')||`<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">Nenhum veículo.</td></tr>`;
 }
 function abrirVeiModal(id){const v=id?veiculos.find(x=>x.id===id):null;$('vm-tit').textContent=v?'Editar veículo':'Novo veículo';$('vf-id').value=v?.id||'';$('vf-nome').value=v?.nome||'';$('vf-mod').value=v?.modelo||'';$('vf-placa').value=v?.placa||'';$('vf-cor').value=v?.cor||'';$('vf-st').value=v?.status||'disponivel';$('vf-km').value=v?.km_atual||'';$('vf-loc').value=v?.localizacao||'';$('vf-oleo').value=v?.ultima_troca_oleo||'';$('vf-prox').value=v?.proxima_troca_oleo_km||'';$('vf-obs').value=v?.obs||'';ov('ov-vei');}
 async function salvarVei(){
@@ -1982,6 +1999,31 @@ async function salvarVei(){
 async function delVei(id){const v=veiculos.find(x=>x.id===id);if(!confirm(`Remover "${v?.nome}"?`))return;const{error}=await SB.from('veiculos').delete().eq('id',id);if(error){toast('Erro','err');return}await loadData();renderVeiculosAdm();renderAll();toast('Removido.','info');}
 function abrirSV(id){const v=veiculos.find(x=>x.id===id);$('sv-id').value=id;$('sv-nm').value=`${v.nome} (${v.placa})`;$('sv-st').value=v.status||'disponivel';$('sv-km').value=v.km_atual||'';$('sv-loc').value=v.localizacao||'';$('sv-obs').value=v.obs||'';ov('ov-sv');}
 async function salvarSV(){const id=$('sv-id').value;const{error}=await SB.from('veiculos').update({status:$('sv-st').value,km_atual:parseInt($('sv-km').value)||0,localizacao:$('sv-loc').value.trim(),obs:$('sv-obs').value.trim()}).eq('id',id);if(error){toast('Erro','err');return}cov('ov-sv');await loadData();renderVeiculosAdm();renderAll();toast('Status atualizado!','ok');}
+
+function abrirCorrecaoKm(id){
+  const v=veiculos.find(x=>x.id===id);
+  $('km-vid').value=id;
+  $('km-nm').value=`${v.nome} (${v.placa})`;
+  $('km-atual-display').value=(v.km_atual||0).toLocaleString('pt-BR')+' km';
+  $('km-novo').value='';
+  $('km-motivo').value='';
+  ov('ov-km');
+}
+
+async function salvarCorrecaoKm(){
+  const id=$('km-vid').value;
+  const kmNovo=parseInt($('km-novo').value);
+  if(!kmNovo&&kmNovo!==0){toast('Informe o km correto.','err');return;}
+  if(kmNovo<0){toast('Km não pode ser negativo.','err');return;}
+  const v=veiculos.find(x=>String(x.id)===String(id));
+  const kmAntigo=v.km_atual||0;
+  if(!confirm(`Confirmar correção do hodômetro?\n\nVeículo: ${v.nome}\nKm atual: ${kmAntigo.toLocaleString('pt-BR')}\nKm correto: ${kmNovo.toLocaleString('pt-BR')}\n\nEssa ação não pode ser desfeita.`))return;
+  const{error}=await SB.from('veiculos').update({km_atual:kmNovo}).eq('id',id);
+  if(error){toast('Erro ao salvar: '+error.message,'err');return;}
+  cov('ov-km');
+  await loadData();renderVeiculosAdm();renderAll();
+  toast(`✓ Hodômetro corrigido: ${kmAntigo.toLocaleString('pt-BR')} → ${kmNovo.toLocaleString('pt-BR')} km`,'ok',5000);
+}
 
 /* RELATÓRIO */
 function initRelFil(){const s=$('rel-vei');if(!s.options.length)veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=`${v.nome} (${v.placa})`;s.appendChild(o);});}
