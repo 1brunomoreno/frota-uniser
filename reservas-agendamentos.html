@@ -2025,6 +2025,52 @@ async function salvarCorrecaoKm(){
   toast(`✓ Hodômetro corrigido: ${kmAntigo.toLocaleString('pt-BR')} → ${kmNovo.toLocaleString('pt-BR')} km`,'ok',5000);
 }
 
+function abrirCorrecaoCkKm(rid){
+  const r=reservas.find(x=>x.id===rid);
+  if(!r){toast('Reserva não encontrada.','err');return;}
+  const ck=r.checklist||{};
+  $('ckk-rid').value=rid;
+  $('ckk-info').value=`${r.responsavel} · ${fmt(r.data_saida)} · ${r.veiculo_id?veiculos.find(v=>v.id===r.veiculo_id)?.nome||'':''}`;
+  $('ckk-saida-atual').textContent=(ck.saida_km||0).toLocaleString('pt-BR')+' km';
+  $('ckk-retorno-atual').textContent=ck.retorno_km?(ck.retorno_km).toLocaleString('pt-BR')+' km':'—';
+  $('ckk-saida-novo').value=ck.saida_km||'';
+  $('ckk-retorno-novo').value=ck.retorno_km||'';
+  $('ckk-preview').style.display='none';
+  // Atualizar preview ao digitar
+  ['ckk-saida-novo','ckk-retorno-novo'].forEach(id=>{
+    $(id).oninput=()=>{
+      const s=parseInt($('ckk-saida-novo').value)||0;
+      const rt=parseInt($('ckk-retorno-novo').value)||0;
+      if(s&&rt&&rt>s){
+        $('ckk-preview-val').textContent=(rt-s).toLocaleString('pt-BR')+' km';
+        $('ckk-preview').style.display='';
+      } else {
+        $('ckk-preview').style.display='none';
+      }
+    };
+  });
+  ov('ov-ck-km');
+}
+
+async function salvarCorrecaoCkKm(){
+  const rid=parseInt($('ckk-rid').value);
+  const saidaNovo=parseInt($('ckk-saida-novo').value);
+  const retornoNovo=parseInt($('ckk-retorno-novo').value)||null;
+  if(!saidaNovo&&saidaNovo!==0){toast('Informe o km de saída.','err');return;}
+  if(saidaNovo<0){toast('Km não pode ser negativo.','err');return;}
+  if(retornoNovo!==null&&retornoNovo<saidaNovo){toast('Km de retorno não pode ser menor que km de saída.','err');return;}
+  const r=reservas.find(x=>x.id===rid);
+  const ckAntigo=r.checklist||{};
+  const novoCk={...ckAntigo,saida_km:saidaNovo};
+  if(retornoNovo!==null)novoCk.retorno_km=retornoNovo;
+  const{error}=await SB.from('reservas').update({checklist:novoCk}).eq('id',rid);
+  if(error){toast('Erro ao salvar: '+error.message,'err');return;}
+  cov('ov-ck-km');
+  await loadData();renderAll();
+  const percNovo=retornoNovo?retornoNovo-saidaNovo:null;
+  toast(`✓ Km corrigido!${percNovo!==null?' Percorrido: '+percNovo.toLocaleString('pt-BR')+' km':''}`,'ok',5000);
+}
+
 /* RELATÓRIO */
 function initRelFil(){const s=$('rel-vei');if(!s.options.length)veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=`${v.nome} (${v.placa})`;s.appendChild(o);});}
 function renderRel(){
@@ -2050,7 +2096,10 @@ function renderRel(){
       return`<div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r10);padding:12px 14px;margin-bottom:8px${temAvaria?';border-left:3px solid var(--danger)':''}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div style="font-weight:600;font-size:13px;font-family:var(--fh)">${r.responsavel}</div>
-          <span style="font-size:11px;color:var(--gray-400)">${fmt(r.data_saida)}</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--gray-400)">${fmt(r.data_saida)}</span>
+            <button class="btn btn-ghost btn-sm" style="padding:2px 7px;font-size:10px;color:#7C3AED;border-color:#DDD6FE" onclick="abrirCorrecaoCkKm(${r.id})" title="Corrigir km"><i class="ti ti-pencil" style="font-size:11px"></i> km</button>
+          </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px;margin-bottom:${temAvaria?'8px':'0'}">
           <div><span style="color:var(--gray-400)">Saída:</span> ${ck.saida_hora||'—'} · ${(ck.saida_km||0).toLocaleString('pt-BR')} km</div>
@@ -2615,6 +2664,31 @@ function renderLavStats(){
 }
 
 </script>
+
+<!-- MODAL EDITAR KM CHECKLIST -->
+<div class="ov" id="ov-ck-km"><div class="modal"><div class="mhdr" style="background:#7C3AED"><h3><i class="ti ti-pencil"></i> Corrigir Km do Lançamento</h3><button class="xbtn" onclick="cov('ov-ck-km')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div style="background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:var(--r10);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#5B21B6;display:flex;gap:8px;align-items:flex-start">
+    <i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px"></i>
+    <span>Corrija os km de saída e/ou retorno deste lançamento. O km percorrido será recalculado automaticamente.</span>
+  </div>
+  <div class="fg"><label class="flbl">Reserva</label><input class="fi" id="ckk-info" readonly style="background:var(--gray-50);color:var(--gray-500);font-size:12px"></div>
+  <div class="g2">
+    <div class="fg">
+      <label class="flbl">Km saída <span style="color:var(--gray-400);font-weight:400">(atual: <span id="ckk-saida-atual"></span>)</span></label>
+      <input type="number" class="fi" id="ckk-saida-novo" placeholder="Ex: 45000" min="0">
+    </div>
+    <div class="fg">
+      <label class="flbl">Km retorno <span style="color:var(--gray-400);font-weight:400">(atual: <span id="ckk-retorno-atual"></span>)</span></label>
+      <input type="number" class="fi" id="ckk-retorno-novo" placeholder="Ex: 45200" min="0">
+    </div>
+  </div>
+  <div id="ckk-preview" style="display:none;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:var(--r10);padding:10px 14px;font-size:12px;color:#166534;margin-top:4px">
+    <i class="ti ti-road"></i> Percorrido após correção: <strong id="ckk-preview-val"></strong>
+  </div>
+  <input type="hidden" id="ckk-rid">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-ck-km')">Cancelar</button><button class="btn" style="background:#7C3AED;color:#fff" onclick="salvarCorrecaoCkKm()"><i class="ti ti-check"></i> Salvar correção</button></div></div></div>
 
 <!-- MODAL CONFIRMAR LAVAGEM -->
 <div class="ov" id="ov-lav-conf">
