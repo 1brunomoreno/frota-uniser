@@ -450,7 +450,7 @@ tr:hover td{background:var(--gray-50)}
     <div style="display:flex;justify-content:center;position:relative;z-index:1">
       <div class="hero-logo-pill"><img id="h1" alt="UniFECAF"><div class="hero-logo-sep"></div><img id="h2" alt="Colégio SER"></div>
     </div>
-    <div class="hero-tag"><i class="ti ti-car"></i> Sistema de Gestão de Frota Institucional</div>
+    <div class="hero-tag"><i class="ti ti-car"></i> Sistema de Frota Institucional — AMBIENTE DE TESTES</div>
     <h1 class="hero-title">Reserve seu veículo<br><span>de forma rápida e simples.</span></h1>
     <p class="hero-sub">Solicite o uso de um veículo, consulte a agenda e acompanhe sua reserva.</p>
     <div id="hero-user-info" style="margin-bottom:16px;position:relative;z-index:1"></div>
@@ -696,7 +696,6 @@ tr:hover td{background:var(--gray-50)}
             <div style="flex:1;min-width:160px"><label class="flbl">Veículo</label><select class="fi" id="cst-vei" onchange="renderCustos()"><option value="">Todos os veículos</option></select></div>
             <div><label class="flbl">Mês/Ano</label><input type="month" class="fi" id="cst-mes" style="max-width:160px"></div>
             <button class="btn btn-p btn-sm" onclick="renderCustos()" style="align-self:flex-end"><i class="ti ti-refresh"></i> Atualizar</button>
-            <button class="btn btn-sm" style="background:#D97706;color:#fff;align-self:flex-end" onclick="abrirAbastecimento()"><i class="ti ti-gas-station"></i> Abastecimento</button>
           </div>
           <div id="cst-body"></div>
         </div>
@@ -990,28 +989,7 @@ tr:hover td{background:var(--gray-50)}
 </div>
 <div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-mn')">Cancelar</button><button class="btn btn-g" onclick="salvarManut()"><i class="ti ti-check"></i> Registrar</button></div></div></div>
 
-<!-- MODAL ABASTECIMENTO -->
-<div class="ov" id="ov-abast"><div class="modal"><div class="mhdr" style="background:#D97706"><h3><i class="ti ti-gas-station"></i> Registrar Abastecimento</h3><button class="xbtn" onclick="cov('ov-abast')"><i class="ti ti-x"></i></button></div>
-<div class="mbody">
-  <div class="fg"><label class="flbl">Veículo</label><select class="fi" id="ab-vei"></select></div>
-  <div class="g2">
-    <div class="fg"><label class="flbl">Data</label><input type="date" class="fi" id="ab-data"></div>
-    <div class="fg"><label class="flbl">Km no abastecimento</label><input type="number" class="fi" id="ab-km" placeholder="Ex: 45000"></div>
-  </div>
-  <div class="g2">
-    <div class="fg"><label class="flbl">Valor (R$) <span style="color:var(--danger)">*</span></label><input type="number" class="fi" id="ab-valor" placeholder="Ex: 180.00" step="0.01" min="0"></div>
-    <div class="fg"><label class="flbl">Litros abastecidos</label><input type="number" class="fi" id="ab-litros" placeholder="Ex: 40.0" step="0.1" min="0"></div>
-  </div>
-  <div class="g2">
-    <div class="fg"><label class="flbl">Tipo de combustível</label>
-      <select class="fi" id="ab-tipo"><option value="gasolina">Gasolina</option><option value="etanol">Etanol</option><option value="diesel">Diesel</option><option value="gnv">GNV</option></select>
-    </div>
-    <div class="fg"><label class="flbl">Posto / Responsável</label><input class="fi" id="ab-posto" placeholder="Nome do posto"></div>
-  </div>
-  <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="ab-obs" rows="2" style="resize:vertical"></textarea></div>
-</div>
-<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-abast')">Cancelar</button><button class="btn" style="background:#D97706;color:#fff" onclick="salvarAbastecimento()"><i class="ti ti-check"></i> Registrar</button></div></div></div>
-
+<script>
 /* ============================================================
    CONFIG — preencha antes de publicar
 ============================================================ */
@@ -1035,9 +1013,9 @@ const $=id=>document.getElementById(id);
 
 /* UTILS */
 function setLogos(){
-  ['ll1','ll2'].forEach((id,i)=>{const e=$(id);if(e){e.src='data:image/jpeg;base64,'+(i===0?L1:L2);e.style.filter='brightness(0) invert(1)'}});
-  ['lg1','tb1','h1'].forEach(id=>{const e=$(id);if(e){e.src='data:image/jpeg;base64,'+L1;e.style.filter='none'}});
-  ['lg2','tb2','h2'].forEach(id=>{const e=$(id);if(e){e.src='data:image/jpeg;base64,'+L2;e.style.filter='none'}});
+  ['ll1','ll2'].forEach((id,i)=>{const e=$(id);if(e){e.src='data:image/png;base64,'+(i===0?L1:L2);e.style.filter='brightness(0) invert(1)'}});
+  ['lg1','tb1','h1'].forEach(id=>{const e=$(id);if(e){e.src='data:image/png;base64,'+L1;e.style.filter='none'}});
+  ['lg2','tb2','h2'].forEach(id=>{const e=$(id);if(e){e.src='data:image/png;base64,'+L2;e.style.filter='none'}});
 }
 function toast(msg,type='info'){const el=document.createElement('div');el.className=`toast t-${type}`;const ic={ok:'ti-circle-check',err:'ti-circle-x',info:'ti-info-circle'};el.innerHTML=`<i class="ti ${ic[type]||'ti-info-circle'}"></i>${msg}`;$('toasts').appendChild(el);setTimeout(()=>el.remove(),4000);}
 function ov(id){$(id).classList.add('on')}
@@ -2722,67 +2700,10 @@ function initCustosTab(){
   $('cst-mes').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 }
 
-function abrirAbastecimento(vid){
-  const s=$('ab-vei');
-  if(!s.options.length||s.options.length===1){
-    s.innerHTML='<option value="">Selecione</option>';
-    veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=`${v.nome} (${v.placa})`;s.appendChild(o);});
-  }
-  if(vid) s.value=vid;
-  $('ab-data').value=TODAY;
-  ['ab-km','ab-valor','ab-litros','ab-posto','ab-obs'].forEach(id=>{const el=$(id);if(el)el.value='';});
-  ov('ov-abast');
-}
-
-async function salvarAbastecimento(){
-  const vid=$('ab-vei').value;
-  const data=$('ab-data').value;
-  const valor=parseFloat($('ab-valor').value);
-  if(!vid){toast('Selecione o veículo.','err');return;}
-  if(!data){toast('Informe a data.','err');return;}
-  if(!valor||valor<=0){toast('Informe o valor do abastecimento.','err');return;}
-
-  const km=parseInt($('ab-km').value)||null;
-  const litros=parseFloat($('ab-litros').value)||null;
-  const tipo=$('ab-tipo').value;
-  const posto=$('ab-posto').value.trim()||null;
-  const obs=$('ab-obs').value.trim()||null;
-
-  const v=veiculos.find(x=>String(x.id)===String(vid));
-  const entrada={data,valor,tipo};
-  if(km) entrada.km=km;
-  if(litros) entrada.litros=litros;
-  if(posto) entrada.posto=posto;
-  if(obs) entrada.obs=obs;
-  // custo por litro
-  if(valor&&litros) entrada.cpl=parseFloat((valor/litros).toFixed(3));
-
-  const upd={abastecimentos:[...(v.abastecimentos||[]),entrada]};
-  if(km&&km>v.km_atual) upd.km_atual=km;
-
-  const{error}=await SB.from('veiculos').update(upd).eq('id',vid);
-  if(error){toast('Erro: '+error.message,'err');return;}
-  cov('ov-abast');
-  await loadData();renderAll();
-  const tabOn=$('atb-custos')?.classList.contains('on');
-  if(tabOn)renderCustos();
-  toast('⛽ Abastecimento registrado!','ok');
-}
-
-async function delAbastecimento(vid,idx){
-  if(!confirm('Remover este abastecimento?'))return;
-  const v=veiculos.find(x=>String(x.id)===String(vid));
-  const lista=[...(v.abastecimentos||[])];
-  lista.splice(idx,1);
-  const{error}=await SB.from('veiculos').update({abastecimentos:lista}).eq('id',vid);
-  if(error){toast('Erro','err');return;}
-  await loadData();renderCustos();toast('Abastecimento removido.','info');
-}
-
 function renderCustos(){
   const el=$('cst-body');if(!el)return;
   const fv=$('cst-vei')?.value;
-  const mes=$('cst-mes')?.value;
+  const mes=$('cst-mes')?.value; // YYYY-MM
   const [ano,mm]=mes?(mes.split('-')):[null,null];
   const de=mes?`${mes}-01`:null;
   const ate=mes?`${mes}-${new Date(parseInt(ano),parseInt(mm),0).getDate()}`:null;
@@ -2790,7 +2711,7 @@ function renderCustos(){
   const veicFiltrados=fv?veiculos.filter(v=>String(v.id)===fv):veiculos;
   let grandTotal=0;
   const rows=veicFiltrados.map(v=>{
-    // Manutenções com valor no período
+    // Manutenções no período
     const mnts=(v.manutencoes||[]).filter(m=>{
       if(!m.valor)return false;
       if(de&&m.data<de)return false;
@@ -2808,108 +2729,61 @@ function renderCustos(){
       if(ate&&d&&d>ate)return false;
       return true;
     });
+    const custoLav=lavsVei.length; // count only — valor não registrado em lavagens
 
-    // Abastecimentos no período
-    const abasts=(v.abastecimentos||[]).filter(a=>{
-      if(de&&a.data<de)return false;
-      if(ate&&a.data>ate)return false;
-      return true;
-    }).sort((a,b)=>b.data.localeCompare(a.data));
-    // Add original index for deletion
-    abasts.forEach(a=>{a._origIdx=(v.abastecimentos||[]).findIndex(x=>x===a);});
-    const custoAbast=abasts.reduce((s,a)=>s+(a.valor||0),0);
-
-    const totalVei=custoManut+custoAbast;
+    const totalVei=custoManut;
     grandTotal+=totalVei;
 
-    if(custoManut===0&&lavsVei.length===0&&abasts.length===0)return null;
-    return{v,mnts,custoManut,lavsVei,abasts,custoAbast,totalVei};
+    if(custoManut===0&&lavsVei.length===0)return null;
+
+    return{v,mnts,custoManut,lavsVei,custoLav,totalVei};
   }).filter(Boolean);
 
   if(!rows.length){
-    el.innerHTML=`<div class="empty"><i class="ti ti-coin-off"></i><h4>Nenhum custo registrado${mes?' em '+new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):''}</h4><p>Registre manutenções ou abastecimentos com valor para visualizar os custos.</p></div>`;
+    el.innerHTML=`<div class="empty"><i class="ti ti-coin-off"></i><h4>Nenhum custo registrado${mes?' em '+new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):''}</h4><p>Registre manutenções com valor para visualizar os custos.</p></div>`;
     return;
   }
 
   const periodoLabel=mes?new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Todo o período';
-  const totalAbast=rows.reduce((s,r)=>s+r.custoAbast,0);
-  const totalManut=rows.reduce((s,r)=>s+r.custoManut,0);
-  const totalLavs=rows.reduce((s,r)=>s+r.lavsVei.length,0);
 
   el.innerHTML=`
+    <!-- KPI geral -->
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:16px">
       <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:var(--r10);padding:12px 14px">
         <div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.4px">Custo total — ${periodoLabel}</div>
         <div style="font-family:var(--fh);font-size:22px;font-weight:800;color:#92400E">R$ ${grandTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
       </div>
-      <div style="background:#FEF3C7;border:1.5px solid #FDE68A;border-radius:var(--r10);padding:12px 14px">
-        <div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.4px">⛽ Combustível</div>
-        <div style="font-family:var(--fh);font-size:22px;font-weight:800;color:#D97706">R$ ${totalAbast.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
-      </div>
       <div style="background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:var(--r10);padding:12px 14px">
-        <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px">🔧 Manutenções</div>
-        <div style="font-family:var(--fh);font-size:22px;font-weight:800;color:var(--gray-700)">R$ ${totalManut.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px">Veículos com custo</div>
+        <div style="font-family:var(--fh);font-size:22px;font-weight:800;color:var(--gray-700)">${rows.length}</div>
       </div>
       <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:var(--r10);padding:12px 14px">
-        <div style="font-size:10px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.4px">💧 Lavagens pagas</div>
-        <div style="font-family:var(--fh);font-size:22px;font-weight:800;color:#166534">${totalLavs}</div>
+        <div style="font-size:10px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.4px">Lavagens pagas</div>
+        <div style="font-family:var(--fh);font-size:22px;font-weight:800;color:#166534">${rows.reduce((s,r)=>s+r.lavsVei.length,0)}</div>
       </div>
     </div>
 
+    <!-- Detalhe por veículo -->
     ${rows.map(r=>`
     <div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:14px 16px;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
         <div>
           <div style="font-family:var(--fh);font-size:14px;font-weight:700;color:var(--gray-700)">${r.v.nome}</div>
           <div style="font-family:monospace;font-size:11px;color:var(--gray-400)">${r.v.placa}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-sm" style="background:#D97706;color:#fff;font-size:11px" onclick="abrirAbastecimento('${r.v.id}')"><i class="ti ti-gas-station"></i> + Abastecimento</button>
-          <div style="font-family:var(--fh);font-size:18px;font-weight:800;color:#92400E">R$ ${r.totalVei.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
-        </div>
+        <div style="font-family:var(--fh);font-size:18px;font-weight:800;color:#92400E">R$ ${r.custoManut.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
       </div>
-
-      ${r.abasts.length?`
-      <div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:flex;align-items:center;gap:6px">
-        <i class="ti ti-gas-station"></i> Abastecimentos
-        <span style="font-weight:400;color:var(--gray-400)">Total: R$ ${r.custoAbast.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
-      </div>
-      ${r.abasts.map((a,idx)=>{
-        const cpl=a.cpl?` · R$ ${a.cpl.toFixed(2)}/L`:'';
-        const litros=a.litros?` · ${a.litros}L`:'';
-        return`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--gray-100);font-size:12px">
-          <div>
-            <span style="font-weight:600;color:var(--gray-700)">${fmt(a.data)}</span>
-            <span style="color:var(--gray-400);margin-left:6px">${a.tipo||''}${litros}${cpl}${a.posto?' · '+a.posto:''}</span>
-            ${a.km?`<span style="color:var(--gray-400);margin-left:6px">· Km: ${a.km.toLocaleString('pt-BR')}</span>`:''}
-            ${a.obs?`<div style="color:var(--gray-400);font-size:11px">${a.obs}</div>`:''}
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <span style="font-weight:700;color:#D97706">R$ ${a.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
-            <button class="btn btn-danger btn-sm" style="padding:2px 6px" onclick="delAbastecimento('${r.v.id}',${a._origIdx})"><i class="ti ti-trash" style="font-size:11px"></i></button>
-          </div>
-        </div>`;
-      }).join('')}`:''}
-
       ${r.mnts.length?`
-      <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;margin-top:${r.abasts.length?10:0}px;margin-bottom:6px;display:flex;align-items:center;gap:6px">
-        <i class="ti ti-tool"></i> Manutenções
-        <span style="font-weight:400">Total: R$ ${r.custoManut.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
-      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Manutenções</div>
       ${r.mnts.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:12px">
         <span style="color:var(--gray-600)">${MTYPE_MAP[m.tipo]||m.tipo} <span style="color:var(--gray-400)">· ${fmt(m.data)}${m.resp?' · '+m.resp:''}</span></span>
         <span style="font-weight:700;color:#92400E">R$ ${m.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
       </div>`).join('')}`:''}
-
       ${r.lavsVei.length?`
-      <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;margin-top:${r.abasts.length||r.mnts.length?10:0}px;margin-bottom:4px;display:flex;align-items:center;gap:6px">
-        <i class="ti ti-droplet"></i> Lavagens pagas (${r.lavsVei.length})
-      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;margin-top:8px;margin-bottom:4px">Lavagens pagas (${r.lavsVei.length})</div>
       ${r.lavsVei.map(l=>`<div style="font-size:12px;color:var(--gray-500);padding:3px 0"><i class="ti ti-droplet" style="color:#0EA5E9"></i> ${l.tipo_lavagem||'Lavagem'} — ${fmt(l.pago_em||l.data_confirmada||l.data_agendada)}</div>`).join('')}`:''}
     </div>`).join('')}`;
 }
-
-
 
 /* ============================================================
    NOTIFICAÇÃO DE EXPIRAÇÃO DE RESERVAS
