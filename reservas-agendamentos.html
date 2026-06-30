@@ -1296,8 +1296,8 @@ function renderVgrid(){
 }
 
 /* RESERVA FORM */
-function renderRvVeiculos(){$('rv-vei').innerHTML=veiculos.filter(v=>v.status!=='manutencao').map(v=>`<option value="${v.id}">${v.nome} (${v.placa})</option>`).join('');}
-function limparRv(){['rv-dep','rv-tel','rv-dst','rv-obs'].forEach(id=>$(id).value='');$('rv-data').value=TODAY;$('rv-hora-saida').value=NOW;$('rv-hora-ret').value=NOW;const m=$('rv-conflict-msg');if(m){m.style.display='none';}const r=$('rv-rodizio-msg');if(r){r.style.display='none';}const b=$('rv-submit-btn');if(b){b.disabled=false;b.style.opacity='';}}
+function renderRvVeiculos(){$('rv-vei').innerHTML='<option value="" selected disabled>Selecione o veículo</option>'+veiculos.filter(v=>v.status!=='manutencao').map(v=>`<option value="${v.id}">${v.nome} (${v.placa})</option>`).join('');}
+function limparRv(){['rv-dep','rv-tel','rv-dst','rv-obs'].forEach(id=>$(id).value='');$('rv-vei').value='';$('rv-data').value=TODAY;$('rv-hora-saida').value=NOW;$('rv-hora-ret').value=NOW;const m=$('rv-conflict-msg');if(m){m.style.display='none';}const r=$('rv-rodizio-msg');if(r){r.style.display='none';}const b=$('rv-submit-btn');if(b){b.disabled=false;b.style.opacity='';}const st=$('rv-vei-status');if(st){st.style.display='none';}}
 
 /* Mapa de rodízio: placa (últimos dígitos ou nome do veículo) → dia da semana (0=Dom,1=Seg,2=Ter,3=Qua,4=Qui,5=Sex,6=Sáb) */
 // Rodízio por final de placa — São Paulo
@@ -1389,6 +1389,7 @@ async function enviarReserva(){
   const tel=$('rv-tel').value.trim(),data=$('rv-data').value;
   const hsai=$('rv-hora-saida').value,hret=$('rv-hora-ret').value;
   const dst=$('rv-dst').value.trim(),obs=$('rv-obs').value.trim();
+  if(!vId){toast('Selecione o veículo.','err');return}
   if(!dep||!resp||!data||!hsai||!hret||!dst){toast('Preencha todos os campos obrigatórios.','err');return}
   if(hret<=hsai){toast('A hora de retorno deve ser após a hora de saída.','err');return}
   const confAprov=reservas.find(r=>String(r.veiculo_id)===String(vId)&&r.status==='aprovado'&&r.data_saida===data&&!(r.hora_retorno<=hsai||r.hora_saida>=hret));
