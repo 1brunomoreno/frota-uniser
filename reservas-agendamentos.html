@@ -150,6 +150,19 @@ input,select,textarea{font-family:var(--fb)}
 .fin-usr-info{flex:1}
 .fin-usr-name{font-family:var(--fh);font-size:13px;font-weight:700;color:var(--gray-700)}
 .fin-usr-meta{font-size:11px;color:var(--gray-400);margin-top:2px}
+/* DASHBOARD FINANCEIRO */
+.fin-dash-tabs{display:flex;gap:4px;margin-bottom:16px;background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r10);padding:4px}
+.fin-dash-tab{flex:1;padding:8px 12px;border-radius:var(--r8);font-size:12px;font-weight:700;font-family:var(--fh);color:var(--gray-400);text-align:center;cursor:pointer;transition:var(--t);border:none;background:none}
+.fin-dash-tab.on{background:var(--blue);color:#fff}
+.fin-chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.fin-chart-box{background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:16px}
+.fin-chart-box.full{grid-column:1/-1}
+.fin-chart-title{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.fin-rank-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100)}
+.fin-rank-row:last-child{border-bottom:none}
+.fin-rank-bar-wrap{flex:1;background:var(--gray-100);border-radius:20px;height:8px;overflow:hidden}
+.fin-rank-bar{height:8px;border-radius:20px;background:linear-gradient(90deg,var(--blue),#0EA5E9);transition:width .6s ease}
+@media(max-width:640px){.fin-chart-grid{grid-template-columns:1fr}.fin-chart-box.full{grid-column:1}}
 .login-info{background:var(--blue-xl);border:1px solid var(--blue-l);border-radius:var(--r10);padding:10px 13px;font-size:12px;color:var(--blue3);display:flex;gap:7px;align-items:flex-start;margin-top:14px;line-height:1.5}
 
 /* TOPBAR */
@@ -497,7 +510,8 @@ tr:hover td{background:var(--gray-50)}
       </div>
       <div class="fin-topbar-right">
         <div class="fin-user-badge"><i class="ti ti-user"></i> <span id="fin-user-nm">—</span></div>
-        <button class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="doLogoutFin()"><i class="ti ti-logout"></i></button>
+        <button class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="abrirTrocarSenhaFin()" title="Alterar senha"><i class="ti ti-key"></i></button>
+        <button class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="doLogoutFin()" title="Sair"><i class="ti ti-logout"></i></button>
       </div>
     </div>
     <!-- Body -->
@@ -505,19 +519,46 @@ tr:hover td{background:var(--gray-50)}
       <!-- Filtros -->
       <div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:14px 16px;margin-bottom:16px">
         <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:end;flex-wrap:wrap">
-          <div class="fg" style="margin:0"><label class="flbl">Veículo</label><select class="fi" id="fin-fvei" onchange="renderFinanceiro()"><option value="">Todos os veículos</option></select></div>
-          <div class="fg" style="margin:0"><label class="flbl">Mês/Ano</label><input type="month" class="fi" id="fin-fmes" onchange="renderFinanceiro()"></div>
-          <button class="btn btn-p" onclick="renderFinanceiro()"><i class="ti ti-search"></i> Filtrar</button>
+          <div class="fg" style="margin:0"><label class="flbl">Veículo</label><select class="fi" id="fin-fvei" onchange="renderFinAtivo()"><option value="">Todos os veículos</option></select></div>
+          <div class="fg" style="margin:0"><label class="flbl">Mês/Ano</label><input type="month" class="fi" id="fin-fmes" onchange="renderFinAtivo()"></div>
+          <button class="btn btn-p" onclick="renderFinAtivo()"><i class="ti ti-search"></i> Filtrar</button>
           <button class="btn btn-ghost" onclick="exportarRelatorioFinPDF()" title="Exportar PDF"><i class="ti ti-file-type-pdf"></i> PDF</button>
         </div>
       </div>
-      <!-- KPIs -->
+      <!-- Abas Dashboard / Lançamentos -->
+      <div class="fin-dash-tabs">
+        <button class="fin-dash-tab on" id="ftab-dash" onclick="switchFinTab('dash')"><i class="ti ti-chart-bar"></i> Dashboard</button>
+        <button class="fin-dash-tab" id="ftab-lanc" onclick="switchFinTab('lanc')"><i class="ti ti-list"></i> Lançamentos</button>
+      </div>
+      <!-- KPIs (sempre visíveis) -->
       <div class="fin-kpi-grid" id="fin-kpis"></div>
-      <!-- Detalhes -->
-      <div id="fin-detalhes"></div>
+      <!-- Dashboard -->
+      <div id="fin-dash-sec">
+        <div class="fin-chart-grid">
+          <div class="fin-chart-box full"><div class="fin-chart-title"><i class="ti ti-trending-up"></i> Evolução de Custos por Mês</div><canvas id="fin-chart-evolucao" height="90"></canvas></div>
+          <div class="fin-chart-box"><div class="fin-chart-title"><i class="ti ti-chart-pie"></i> Custo por Veículo</div><canvas id="fin-chart-veiculo" height="200"></canvas></div>
+          <div class="fin-chart-box"><div class="fin-chart-title"><i class="ti ti-chart-donut"></i> Divisão por Categoria</div><canvas id="fin-chart-categoria" height="200"></canvas></div>
+        </div>
+        <div class="fin-chart-box" style="margin-bottom:14px"><div class="fin-chart-title"><i class="ti ti-gas-station"></i> Média CPL (R$/Litro) por Mês</div><canvas id="fin-chart-cpl" height="80"></canvas></div>
+        <div class="fin-chart-box" id="fin-rank-box"><div class="fin-chart-title"><i class="ti ti-trophy"></i> Ranking — Veículos Mais Caros</div><div id="fin-rank-list"></div></div>
+      </div>
+      <!-- Lançamentos -->
+      <div id="fin-lanc-sec" style="display:none">
+        <div id="fin-detalhes"></div>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- MODAL TROCAR SENHA FINANCEIRO -->
+<div class="ov" id="ov-fin-senha"><div class="modal"><div class="mhdr" style="background:#166534"><h3><i class="ti ti-key"></i> Alterar Senha</h3><button class="xbtn" onclick="cov('ov-fin-senha')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="fg"><label class="flbl">Senha atual <span style="color:var(--danger)">*</span></label><input type="password" class="fi" id="fins-atual" placeholder="••••••••"></div>
+  <div class="fg"><label class="flbl">Nova senha <span style="color:var(--danger)">*</span></label><input type="password" class="fi" id="fins-nova" placeholder="Mínimo 6 caracteres"></div>
+  <div class="fg"><label class="flbl">Confirmar nova senha <span style="color:var(--danger)">*</span></label><input type="password" class="fi" id="fins-conf" placeholder="Repita a nova senha"></div>
+  <div id="fins-msg" style="display:none"></div>
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-fin-senha')">Cancelar</button><button class="btn btn-g" onclick="salvarSenhaFin()"><i class="ti ti-check"></i> Alterar senha</button></div></div></div>
 
 <!-- MODAL COMPROVANTE -->
 <div class="ov" id="ov-comprov"><div class="modal"><div class="mhdr" style="background:#0369A1"><h3><i class="ti ti-link"></i> Comprovante / Nota Fiscal</h3><button class="xbtn" onclick="cov('ov-comprov')"><i class="ti ti-x"></i></button></div>
@@ -880,11 +921,52 @@ tr:hover td{background:var(--gray-50)}
 
         <!-- PAINEL FINANCEIRO ADMIN -->
         <div class="admin-pane" id="ap-financeiro">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-            <div style="font-family:var(--fh);font-size:13px;font-weight:700;color:var(--gray-700)"><i class="ti ti-users"></i> Usuários do Módulo Financeiro</div>
-            <button class="btn btn-g btn-sm" onclick="abrirFinUsr()"><i class="ti ti-user-plus"></i> Novo usuário</button>
+          <!-- Sub-abas -->
+          <div class="fin-dash-tabs" style="margin-bottom:14px">
+            <button class="fin-dash-tab on" id="fadm-tab-dash" onclick="switchFinAdmTab('dash')"><i class="ti ti-chart-bar"></i> Dashboard</button>
+            <button class="fin-dash-tab" id="fadm-tab-lanc" onclick="switchFinAdmTab('lanc')"><i class="ti ti-list"></i> Lançamentos</button>
+            <button class="fin-dash-tab" id="fadm-tab-usr" onclick="switchFinAdmTab('usr')"><i class="ti ti-users"></i> Usuários</button>
           </div>
-          <div id="fin-usr-list"><div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px">Carregando...</div></div>
+          <!-- Dashboard Admin -->
+          <div id="fadm-dash-sec">
+            <!-- Filtros -->
+            <div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:12px 14px;margin-bottom:14px">
+              <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
+                <div class="fg" style="margin:0"><label class="flbl">Veículo</label><select class="fi" id="fadm-fvei" onchange="renderFinDashAdm()"><option value="">Todos</option></select></div>
+                <div class="fg" style="margin:0"><label class="flbl">Mês/Ano</label><input type="month" class="fi" id="fadm-fmes" onchange="renderFinDashAdm()"></div>
+                <button class="btn btn-p btn-sm" onclick="renderFinDashAdm()"><i class="ti ti-search"></i> Filtrar</button>
+              </div>
+            </div>
+            <div class="fin-kpi-grid" id="fadm-kpis"></div>
+            <div class="fin-chart-grid">
+              <div class="fin-chart-box full"><div class="fin-chart-title"><i class="ti ti-trending-up"></i> Evolução de Custos por Mês</div><canvas id="fadm-chart-evolucao" height="90"></canvas></div>
+              <div class="fin-chart-box"><div class="fin-chart-title"><i class="ti ti-chart-pie"></i> Custo por Veículo</div><canvas id="fadm-chart-veiculo" height="200"></canvas></div>
+              <div class="fin-chart-box"><div class="fin-chart-title"><i class="ti ti-chart-donut"></i> Divisão por Categoria</div><canvas id="fadm-chart-categoria" height="200"></canvas></div>
+            </div>
+            <div class="fin-chart-box" style="margin-bottom:14px"><div class="fin-chart-title"><i class="ti ti-gas-station"></i> Média CPL por Mês</div><canvas id="fadm-chart-cpl" height="80"></canvas></div>
+            <div class="fin-chart-box" id="fadm-rank-box"><div class="fin-chart-title"><i class="ti ti-trophy"></i> Ranking — Veículos Mais Caros</div><div id="fadm-rank-list"></div></div>
+          </div>
+          <!-- Lançamentos Admin -->
+          <div id="fadm-lanc-sec" style="display:none">
+            <div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:12px 14px;margin-bottom:14px">
+              <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:end">
+                <div class="fg" style="margin:0"><label class="flbl">Veículo</label><select class="fi" id="fadm-lanc-vei" onchange="renderFinLancAdm()"><option value="">Todos</option></select></div>
+                <div class="fg" style="margin:0"><label class="flbl">Mês/Ano</label><input type="month" class="fi" id="fadm-lanc-mes" onchange="renderFinLancAdm()"></div>
+                <button class="btn btn-p btn-sm" onclick="renderFinLancAdm()"><i class="ti ti-search"></i> Filtrar</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportarRelatorioFinPDFAdm()"><i class="ti ti-file-type-pdf"></i> PDF</button>
+              </div>
+            </div>
+            <div class="fin-kpi-grid" id="fadm-lanc-kpis"></div>
+            <div id="fadm-lanc-det"></div>
+          </div>
+          <!-- Usuários -->
+          <div id="fadm-usr-sec" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+              <div style="font-family:var(--fh);font-size:13px;font-weight:700;color:var(--gray-700)"><i class="ti ti-users"></i> Usuários do Módulo Financeiro</div>
+              <button class="btn btn-g btn-sm" onclick="abrirFinUsr()"><i class="ti ti-user-plus"></i> Novo usuário</button>
+            </div>
+            <div id="fin-usr-list"></div>
+          </div>
         </div>
 
         <div class="admin-pane" id="ap-senha">
@@ -1857,7 +1939,7 @@ function aTab(n){
   if(n==='avisos'){renderAvisosAdm();}
   if(n==='manutencao'){initManutTab();renderManutencaoAdm();}
   if(n==='custos'){initCustosTab();renderCustos();}
-  if(n==='financeiro'){loadFinUsuarios().then(renderFinUsrList);}
+  if(n==='financeiro'){switchFinAdmTab('dash');}
 }
 
 /* SENHA ADMIN — só acessível ao super admin */
@@ -2837,7 +2919,8 @@ async function doLoginFin(){
   $('fin-fmes').value=TODAY.slice(0,7);
   $('s-login').classList.remove('on');
   $('s-fin').classList.add('on');
-  renderFinanceiro();
+  switchFinTab('dash');
+  _renderFinDash('fin-');
 }
 
 function doLogoutFin(){
@@ -2848,6 +2931,30 @@ function doLogoutFin(){
   $('fin-user-input').value='';
   $('fin-pwd-input').value='';
   switchLoginTab('cpf');
+}
+
+function abrirTrocarSenhaFin(){
+  ['fins-atual','fins-nova','fins-conf'].forEach(id=>$(id).value='');
+  const msg=$('fins-msg');if(msg)msg.style.display='none';
+  ov('ov-fin-senha');
+}
+
+async function salvarSenhaFin(){
+  const atual=$('fins-atual').value;
+  const nova=$('fins-nova').value;
+  const conf=$('fins-conf').value;
+  const msg=$('fins-msg');
+  const showMsg=(txt,tipo)=>{msg.className='login-msg '+(tipo==='err'?'err':'ok');msg.innerHTML='<i class="ti ti-'+(tipo==='err'?'alert-circle':'circle-check')+'"></i><span>'+txt+'</span>';msg.style.display='flex';};
+  if(!atual||!nova||!conf){showMsg('Preencha todos os campos.','err');return;}
+  if(btoa(atual)!==finUser.senha_hash){showMsg('Senha atual incorreta.','err');return;}
+  if(nova.length<6){showMsg('A nova senha deve ter ao menos 6 caracteres.','err');return;}
+  if(nova!==conf){showMsg('As senhas não coincidem.','err');return;}
+  const{error}=await SB.from('usuarios_financeiro').update({senha_hash:btoa(nova)}).eq('id',finUser.id);
+  if(error){showMsg('Erro ao salvar: '+error.message,'err');return;}
+  finUser.senha_hash=btoa(nova);
+  showMsg('Senha alterada com sucesso!','ok');
+  setTimeout(()=>cov('ov-fin-senha'),1500);
+  toast('✓ Senha alterada!','ok');
 }
 
 function renderFinanceiro(){
@@ -3073,6 +3180,196 @@ function renderFinUsrList(){
         '<button class="btn btn-danger btn-sm" onclick="delFinUsr('+u.id+')" title="Excluir"><i class="ti ti-trash"></i></button>'+
       '</div></div>';
   }).join('');
+}
+
+/* DASHBOARD FINANCEIRO — Charts */
+let _finCharts={};
+
+function _destroyChart(id){if(_finCharts[id]){_finCharts[id].destroy();delete _finCharts[id];}}
+
+function _calcFinData(fv, mes){
+  const[ano,mm]=mes?mes.split('-'):[null,null];
+  const de=mes?mes+'-01':null;
+  const ate=mes?mes+'-'+new Date(parseInt(ano),parseInt(mm),0).getDate():null;
+  const veicFiltrados=fv?veiculos.filter(v=>String(v.id)===fv):veiculos;
+  let grandTotal=0,totalComb=0,totalMnt=0,totalOtros=0;
+  const rows=veicFiltrados.map(v=>{
+    const abasts=(v.abastecimentos||[]).filter(a=>(!de||a.data>=de)&&(!ate||a.data<=ate));
+    abasts.forEach(a=>{a._origIdx=(v.abastecimentos||[]).findIndex(x=>x===a);});
+    const custoAbast=abasts.reduce((s,a)=>s+(a.valor||0),0);
+    const abstsComLitro=abasts.filter(a=>a.litros&&a.valor);
+    const sumLit=abstsComLitro.reduce((s,a)=>s+(a.litros||0),0);
+    const cplMedio=sumLit>0?abstsComLitro.reduce((s,a)=>s+(a.valor||0),0)/sumLit:null;
+    const mnts=(v.manutencoes||[]).filter(m=>m.valor&&(!de||m.data>=de)&&(!ate||m.data<=ate));
+    mnts.forEach(m=>{m._origIdx=(v.manutencoes||[]).findIndex(x=>x===m);});
+    const custoManut=mnts.reduce((s,m)=>s+(m.valor||0),0);
+    const outros=(v.outros_custos||[]).filter(o=>(!de||o.data>=de)&&(!ate||o.data<=ate));
+    outros.forEach(o=>{o._origIdx=(v.outros_custos||[]).findIndex(x=>x===o);});
+    const custoOutros=outros.reduce((s,o)=>s+(o.valor||0),0);
+    const total=custoAbast+custoManut+custoOutros;
+    grandTotal+=total;totalComb+=custoAbast;totalMnt+=custoManut;totalOtros+=custoOutros;
+    return{v,abasts,custoAbast,cplMedio,sumLit,mnts,custoManut,outros,custoOutros,total};
+  });
+  return{rows,grandTotal,totalComb,totalMnt,totalOtros,veicFiltrados};
+}
+
+function _calcEvolucao(){
+  // Pega últimos 6 meses a partir de hoje
+  const meses=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);
+    meses.push(d.toISOString().slice(0,7));
+  }
+  return meses.map(mes=>{
+    const[ano,mm]=mes.split('-');
+    const de=mes+'-01';
+    const ate=mes+'-'+new Date(parseInt(ano),parseInt(mm),0).getDate();
+    let comb=0,mnt=0,outros=0,litros=0,valor=0;
+    veiculos.forEach(v=>{
+      (v.abastecimentos||[]).filter(a=>a.data>=de&&a.data<=ate).forEach(a=>{comb+=(a.valor||0);if(a.litros){litros+=a.litros;valor+=(a.valor||0);}});
+      (v.manutencoes||[]).filter(m=>m.valor&&m.data>=de&&m.data<=ate).forEach(m=>{mnt+=(m.valor||0);});
+      (v.outros_custos||[]).filter(o=>o.data>=de&&o.data<=ate).forEach(o=>{outros+=(o.valor||0);});
+    });
+    const label=new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
+    const cpl=litros>0?valor/litros:null;
+    return{mes,label,comb,mnt,outros,total:comb+mnt+outros,cpl};
+  });
+}
+
+function _renderFinDash(prefix){
+  const fv=$(prefix+'fvei')?.value||'';
+  const mes=$(prefix+'fmes')?.value||'';
+  const{rows,grandTotal,totalComb,totalMnt,totalOtros}=_calcFinData(fv,mes);
+  const evolucao=_calcEvolucao();
+  const PALETTE=['#003E7E','#00A651','#D97706','#7C3AED','#0EA5E9','#DC2626'];
+
+  // KPIs
+  const kpiEl=$(prefix+'kpis');
+  if(kpiEl) kpiEl.innerHTML=
+    '<div class="fin-kpi" style="background:#FFFBEB;border:1.5px solid #FDE68A"><div class="fin-kpi-lbl" style="color:#92400E">Total</div><div class="fin-kpi-val" style="color:#92400E">R$ '+grandTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:#FEF3C7;border:1.5px solid #FDE68A"><div class="fin-kpi-lbl" style="color:#92400E">Combustível</div><div class="fin-kpi-val" style="color:#D97706">R$ '+totalComb.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:var(--gray-50);border:1.5px solid var(--gray-200)"><div class="fin-kpi-lbl" style="color:var(--gray-400)">Manutenções</div><div class="fin-kpi-val" style="color:var(--gray-700)">R$ '+totalMnt.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:#F5F3FF;border:1.5px solid #DDD6FE"><div class="fin-kpi-lbl" style="color:#5B21B6">Outros</div><div class="fin-kpi-val" style="color:#7C3AED">R$ '+totalOtros.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>';
+
+  // Gráfico 1: Evolução por mês (barra empilhada)
+  _destroyChart(prefix+'evolucao');
+  const ctxEv=document.getElementById(prefix+'chart-evolucao');
+  if(ctxEv) _finCharts[prefix+'evolucao']=new Chart(ctxEv,{type:'bar',data:{labels:evolucao.map(e=>e.label),datasets:[{label:'Combustível',data:evolucao.map(e=>e.comb),backgroundColor:'#D97706'},{label:'Manutenções',data:evolucao.map(e=>e.mnt),backgroundColor:'#003E7E'},{label:'Outros',data:evolucao.map(e=>e.outros),backgroundColor:'#7C3AED'}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR')}}}}});
+
+  // Gráfico 2: Pizza por veículo
+  _destroyChart(prefix+'veiculo');
+  const rowsComCusto=rows.filter(r=>r.total>0);
+  const ctxVei=document.getElementById(prefix+'chart-veiculo');
+  if(ctxVei) _finCharts[prefix+'veiculo']=new Chart(ctxVei,{type:'doughnut',data:{labels:rowsComCusto.map(r=>r.v.nome),datasets:[{data:rowsComCusto.map(r=>r.total),backgroundColor:PALETTE}]},options:{responsive:true,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}}}}});
+
+  // Gráfico 3: Pizza por categoria
+  _destroyChart(prefix+'categoria');
+  const ctxCat=document.getElementById(prefix+'chart-categoria');
+  if(ctxCat) _finCharts[prefix+'categoria']=new Chart(ctxCat,{type:'doughnut',data:{labels:['Combustível','Manutenções','Outros'],datasets:[{data:[totalComb,totalMnt,totalOtros],backgroundColor:['#D97706','#003E7E','#7C3AED']}]},options:{responsive:true,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}}}}});
+
+  // Gráfico 4: CPL por mês (linha)
+  _destroyChart(prefix+'cpl');
+  const ctxCpl=document.getElementById(prefix+'chart-cpl');
+  const cplData=evolucao.filter(e=>e.cpl!==null);
+  if(ctxCpl) _finCharts[prefix+'cpl']=new Chart(ctxCpl,{type:'line',data:{labels:evolucao.map(e=>e.label),datasets:[{label:'R$/Litro',data:evolucao.map(e=>e.cpl),borderColor:'#D97706',backgroundColor:'rgba(217,119,6,.1)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#D97706'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'R$ '+v.toFixed(2)}}}}});
+
+  // Ranking
+  const rankEl=$(prefix+'rank-list');
+  if(rankEl){
+    const sorted=[...rows].filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
+    const max=sorted[0]?.total||1;
+    rankEl.innerHTML=sorted.length?sorted.map((r,i)=>
+      '<div class="fin-rank-row">'+
+        '<div style="font-family:var(--fh);font-size:11px;font-weight:700;color:'+(i===0?'#D97706':i===1?'var(--gray-500)':'var(--gray-400)')+';width:18px">'+(i+1)+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--gray-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+r.v.nome+'</div>'+
+          '<div class="fin-rank-bar-wrap"><div class="fin-rank-bar" style="width:'+Math.round(r.total/max*100)+'%;background:'+(i===0?'linear-gradient(90deg,#D97706,#F59E0B)':i===1?'linear-gradient(90deg,var(--blue),#0EA5E9)':'linear-gradient(90deg,#7C3AED,#A78BFA)')+'"></div></div>'+
+        '</div>'+
+        '<div style="font-family:var(--fh);font-size:13px;font-weight:800;color:'+(i===0?'#D97706':'var(--gray-700)')+';white-space:nowrap;margin-left:10px">R$ '+r.total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>'+
+      '</div>'
+    ).join(''):'<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:16px">Nenhum custo no período.</div>';
+  }
+}
+
+function switchFinTab(tab){
+  $('ftab-dash').classList.toggle('on',tab==='dash');
+  $('ftab-lanc').classList.toggle('on',tab==='lanc');
+  $('fin-dash-sec').style.display=tab==='dash'?'':'none';
+  $('fin-lanc-sec').style.display=tab==='lanc'?'':'none';
+  if(tab==='dash') _renderFinDash('fin-');
+  if(tab==='lanc') renderFinanceiro();
+}
+
+function renderFinAtivo(){
+  const tab=$('ftab-dash')?.classList.contains('on')?'dash':'lanc';
+  if(tab==='dash') _renderFinDash('fin-');
+  else renderFinanceiro();
+}
+
+function switchFinAdmTab(tab){
+  ['dash','lanc','usr'].forEach(t=>{
+    $('fadm-tab-'+t)?.classList.toggle('on',t===tab);
+  });
+  $('fadm-dash-sec').style.display=tab==='dash'?'':'none';
+  $('fadm-lanc-sec').style.display=tab==='lanc'?'':'none';
+  $('fadm-usr-sec').style.display=tab==='usr'?'':'none';
+  if(tab==='dash') renderFinDashAdm();
+  if(tab==='lanc') renderFinLancAdm();
+  if(tab==='usr'){loadFinUsuarios().then(renderFinUsrList);}
+}
+
+function renderFinDashAdm(){
+  // Preencher select de veículos se vazio
+  const sel=$('fadm-fvei');
+  if(sel&&sel.options.length<=1){
+    veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome+' ('+v.placa+')';sel.appendChild(o);});
+  }
+  if(!$('fadm-fmes').value) $('fadm-fmes').value=TODAY.slice(0,7);
+  _renderFinDash('fadm-');
+}
+
+function renderFinLancAdm(){
+  const sel=$('fadm-lanc-vei');
+  if(sel&&sel.options.length<=1){
+    veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome+' ('+v.placa+')';sel.appendChild(o);});
+  }
+  if(!$('fadm-lanc-mes').value) $('fadm-lanc-mes').value=TODAY.slice(0,7);
+  // Reusar renderFinanceiro mas para o painel admin
+  const fv=$('fadm-lanc-vei')?.value||'';
+  const mes=$('fadm-lanc-mes')?.value||'';
+  const{rows,grandTotal,totalComb,totalMnt,totalOtros}=_calcFinData(fv,mes);
+  const[ano,mm]=mes?mes.split('-'):[null,null];
+  const periodoLabel=mes?new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Todo o período';
+  const kpiEl=$('fadm-lanc-kpis');
+  if(kpiEl) kpiEl.innerHTML=
+    '<div class="fin-kpi" style="background:#FFFBEB;border:1.5px solid #FDE68A"><div class="fin-kpi-lbl" style="color:#92400E">Total — '+periodoLabel+'</div><div class="fin-kpi-val" style="color:#92400E">R$ '+grandTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:#FEF3C7;border:1.5px solid #FDE68A"><div class="fin-kpi-lbl" style="color:#92400E">Combustível</div><div class="fin-kpi-val" style="color:#D97706">R$ '+totalComb.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:var(--gray-50);border:1.5px solid var(--gray-200)"><div class="fin-kpi-lbl" style="color:var(--gray-400)">Manutenções</div><div class="fin-kpi-val" style="color:var(--gray-700)">R$ '+totalMnt.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:#F5F3FF;border:1.5px solid #DDD6FE"><div class="fin-kpi-lbl" style="color:#5B21B6">Outros</div><div class="fin-kpi-val" style="color:#7C3AED">R$ '+totalOtros.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>';
+  // Reusar lógica de detalhes do renderFinanceiro para fadm-lanc-det
+  const det=$('fadm-lanc-det');
+  if(!det)return;
+  if(!rows.filter(r=>r.total>0).length){det.innerHTML='<div class="empty"><i class="ti ti-coin-off"></i><h4>Nenhum lançamento no período</h4></div>';return;}
+  // Gerar HTML dos lançamentos (reusar mesma lógica de renderFinanceiro)
+  const tmpVei=$('fin-fvei')?.value;const tmpMes=$('fin-fmes')?.value;
+  if($('fin-fvei')) $('fin-fvei').value=fv;
+  if($('fin-fmes')) $('fin-fmes').value=mes;
+  renderFinanceiro();
+  const html=$('fin-detalhes')?.innerHTML||'';
+  det.innerHTML=html;
+  if($('fin-fvei')) $('fin-fvei').value=tmpVei||'';
+  if($('fin-fmes')) $('fin-fmes').value=tmpMes||'';
+}
+
+function exportarRelatorioFinPDFAdm(){
+  const fv=$('fadm-lanc-vei')?.value||'';
+  const mes=$('fadm-lanc-mes')?.value||'';
+  // Temporariamente sobrescrever filtros do painel financeiro e chamar exportação
+  const tmpVei=$('fin-fvei')?.value;const tmpMes=$('fin-fmes')?.value;
+  if($('fin-fvei')) $('fin-fvei').value=fv;
+  if($('fin-fmes')) $('fin-fmes').value=mes;
+  exportarRelatorioFinPDF();
+  if($('fin-fvei')) $('fin-fvei').value=tmpVei||'';
+  if($('fin-fmes')) $('fin-fmes').value=tmpMes||'';
 }
 
 /* EXPORTAR PDF FINANCEIRO */
