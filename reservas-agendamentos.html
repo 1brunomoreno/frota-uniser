@@ -790,18 +790,6 @@ tr:hover td{background:var(--gray-50)}
 
     <!-- ADMIN PANEL -->
     <div class="admin-panel" id="admin-panel" style="display:none">
-      <div class="admin-panel-hdr"><i class="ti ti-shield-check" style="font-size:18px;color:rgba(255,255,255,.85)"></i><h2>Painel do Administrador</h2></div>
-      <div id="admin-login-wrap" style="padding:18px 20px">
-        <div style="max-width:320px">
-          <label class="flbl">Senha do administrador</label>
-          <input type="password" class="fi" id="admin-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPwd()" style="margin-bottom:10px">
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-g" onclick="checkPwd()"><i class="ti ti-lock-open"></i> Entrar</button>
-            <button class="btn btn-ghost" onclick="fecharAdmin()"><i class="ti ti-x"></i> Cancelar</button>
-          </div>
-          <div id="admin-msg" style="margin-top:9px;font-size:12px;color:var(--danger);display:none"></div>
-        </div>
-      </div>
       <div id="admin-tabs-wrap" style="display:none">
         <div class="admin-tabs">
           <div class="atab on" id="atb-aprov" onclick="aTab('aprov')"><i class="ti ti-check"></i> Aprovações</div>
