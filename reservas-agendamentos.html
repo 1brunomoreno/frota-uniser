@@ -168,6 +168,13 @@ input,select,textarea{font-family:var(--fb)}
 /* TOPBAR */
 .topbar{background:var(--blue);height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;box-shadow:0 2px 14px rgba(0,0,0,.2);position:sticky;top:0;z-index:400;flex-shrink:0}
 .tb-brand{display:flex;align-items:center;gap:12px}
+/* ADMIN NAV NA TOPBAR */
+.admin-topnav{display:none;align-items:center;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;margin:0 12px}
+.admin-topnav::-webkit-scrollbar{display:none}
+.admin-topnav.on{display:flex}
+.atnav{padding:6px 10px;font-size:11px;font-weight:600;font-family:var(--fh);color:rgba(255,255,255,.65);cursor:pointer;border-radius:var(--r6);border:1px solid transparent;white-space:nowrap;transition:var(--t);display:flex;align-items:center;gap:4px;background:none}
+.atnav:hover{color:#fff;background:rgba(255,255,255,.12)}
+.atnav.on{color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.25)}
 .tb-logo-pill{display:flex;align-items:center;gap:10px;background:#fff;padding:5px 14px;border-radius:8px}
 .tb-logo-pill img{height:22px;object-fit:contain}
 .tb-logo-inner-sep{width:1px;height:18px;background:var(--gray-200)}
@@ -310,11 +317,9 @@ textarea.fi{resize:vertical;min-height:68px}
 #cpf-f-admin:checked+span{background:var(--green)!important}
 #cpf-f-admin:checked+span::before{transform:translateX(20px)}
 #cpf-admin-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.admin-panel{background:#fff;border-radius:var(--r18);border:2px solid var(--green);box-shadow:var(--sh1);overflow:hidden;margin-bottom:24px}
-.admin-panel-hdr{background:linear-gradient(120deg,var(--green2),var(--green));padding:14px 20px;display:flex;align-items:center;gap:10px}
-.admin-panel-hdr h2{font-family:var(--fh);font-size:14px;font-weight:700;color:#fff}
-.admin-tabs{display:flex;border-bottom:1.5px solid var(--gray-100);padding:0 16px;overflow-x:auto;scrollbar-width:none}
-.admin-tabs::-webkit-scrollbar{display:none}
+.admin-panel{background:#fff;border-radius:var(--r18);box-shadow:var(--sh1);overflow:hidden;margin-bottom:24px}
+.admin-panel-hdr{display:none}
+.admin-tabs{display:none}
 .atab{padding:10px 13px 8px;font-size:12px;font-weight:600;font-family:var(--fh);color:var(--gray-400);cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;transition:var(--t)}
 .atab:hover{color:var(--green);background:var(--green-l)}
 .atab.on{color:var(--green2);border-bottom-color:var(--green)}
@@ -592,6 +597,16 @@ tr:hover td{background:var(--gray-50)}
 </div>
 <div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-fin-usr')">Cancelar</button><button class="btn btn-g" onclick="salvarFinUsr()"><i class="ti ti-check"></i> Salvar</button></div></div></div>
 
+<!-- MODAL LOGIN ADMIN -->
+<div class="ov" id="ov-admin-login"><div class="modal" style="max-width:360px"><div class="mhdr" style="background:linear-gradient(120deg,var(--green2),var(--green))"><h3><i class="ti ti-shield-check"></i> Painel do Administrador</h3><button class="xbtn" onclick="cov('ov-admin-login')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="fg"><label class="flbl">Senha do administrador</label>
+    <input type="password" class="fi" id="admin-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPwd()">
+  </div>
+  <div id="admin-msg" style="margin-top:6px;font-size:12px;color:var(--danger);display:none"></div>
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-admin-login')">Cancelar</button><button class="btn btn-g" onclick="checkPwd()"><i class="ti ti-lock-open"></i> Entrar</button></div></div></div>
+
 <!-- APP -->
 <div class="scr" id="s-app">
   <div class="topbar">
@@ -602,6 +617,23 @@ tr:hover td{background:var(--gray-50)}
       <div class="tb-divider"></div>
       <span class="tb-sys">Gestão de Frota</span>
     </div>
+    <!-- ADMIN NAV (visível só com admin logado) -->
+    <nav class="admin-topnav" id="admin-topnav">
+      <div class="atnav on" id="atnav-aprov" onclick="aTab('aprov')"><i class="ti ti-check"></i> Aprovações</div>
+      <div class="atnav" id="atnav-reservas" onclick="aTab('reservas')"><i class="ti ti-list"></i> Reservas</div>
+      <div class="atnav" id="atnav-veiculos" onclick="aTab('veiculos')"><i class="ti ti-car"></i> Veículos</div>
+      <div class="atnav" id="atnav-relatorio" onclick="aTab('relatorio')"><i class="ti ti-chart-bar"></i> Relatórios</div>
+      <div class="atnav" id="atnav-checklist" onclick="aTab('checklist')"><i class="ti ti-steering-wheel"></i> Checklists</div>
+      <div class="atnav" id="atnav-cpfs" onclick="aTab('cpfs')"><i class="ti ti-id-badge-2"></i> CPFs</div>
+      <div class="atnav" id="atnav-lavagem" onclick="aTab('lavagem')"><i class="ti ti-droplet"></i> Lavagens</div>
+      <div class="atnav" id="atnav-manutencao" onclick="aTab('manutencao')"><i class="ti ti-tool"></i> Manutenção</div>
+      <div class="atnav" id="atnav-custos" onclick="aTab('custos')"><i class="ti ti-coin"></i> Custos</div>
+      <div class="atnav" id="atnav-dashboard" onclick="aTab('dashboard')"><i class="ti ti-chart-line"></i> Dashboard</div>
+      <div class="atnav" id="atnav-depto" onclick="aTab('depto')"><i class="ti ti-chart-pie"></i> Por Depto</div>
+      <div class="atnav" id="atnav-avisos" onclick="aTab('avisos')"><i class="ti ti-speakerphone"></i> Avisos</div>
+      <div class="atnav" id="atnav-financeiro" onclick="aTab('financeiro')"><i class="ti ti-coin"></i> Financeiro</div>
+      <div class="atnav" id="atnav-senha" style="display:none" onclick="aTab('senha')"><i class="ti ti-key"></i> Senha</div>
+    </nav>
     <div class="tb-right">
       <div class="user-chip"><div class="u-av" id="app-av">?</div><span id="app-nm" style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span></div>
       <button class="admin-btn" id="admin-btn" onclick="toggleAdmin()"><i class="ti ti-shield"></i><span id="admin-lbl">Admin</span></button>
@@ -1348,8 +1380,8 @@ window.addEventListener('DOMContentLoaded',async()=>{
       if(localStorage.getItem('frota_admin')==='1'){
         adminLogado=true;
         $('admin-panel').style.display='block';
-        $('admin-login-wrap').style.display='none';
         $('admin-tabs-wrap').style.display='block';
+        $('admin-topnav').classList.add('on');
         $('admin-btn').classList.add('admin-active');
         $('admin-lbl').textContent='Admin ativo';
         renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
@@ -1421,8 +1453,8 @@ function aplicarSessao(found){
     adminLogado=true;
     localStorage.setItem('frota_admin','1');
     $('admin-panel').style.display='block';
-    $('admin-login-wrap').style.display='none';
     $('admin-tabs-wrap').style.display='block';
+    $('admin-topnav').classList.add('on');
     $('admin-btn').classList.add('admin-active');
     $('admin-lbl').textContent='Admin ativo';
     renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
@@ -1908,24 +1940,33 @@ async function salvarRetorno(){
 }
 
 /* ADMIN */
-function toggleAdmin(){if(adminLogado){fecharAdmin();return}$('admin-panel').style.display='block';$('admin-login-wrap').style.display='block';$('admin-tabs-wrap').style.display='none';$('admin-pwd').value='';$('admin-msg').style.display='none';$('admin-panel').scrollIntoView({behavior:'smooth',block:'start'});}
+function toggleAdmin(){if(adminLogado){fecharAdmin();return}$('admin-pwd').value='';$('admin-msg').style.display='none';ov('ov-admin-login');}
 async function checkPwd(){
   if($('admin-pwd').value===getAdminPwd()){
     adminLogado=true;
     localStorage.setItem('frota_admin','1');
-    $('admin-login-wrap').style.display='none';$('admin-tabs-wrap').style.display='block';
+    cov('ov-admin-login');
+    // Mostrar nav na topbar
+    $('admin-topnav').classList.add('on');
     $('admin-btn').classList.add('admin-active');$('admin-lbl').textContent='Admin ativo';
+    // Mostrar painel de conteúdo
+    $('admin-panel').style.display='block';
+    $('admin-tabs-wrap').style.display='block';
     renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
     await loadLavagens();renderLavAdm();initLavSec();
     initSenhaTab();
+    aTab('aprov');
     toast('Modo administrador ativado.','ok');
+    // Scroll suave até painel
+    setTimeout(()=>$('admin-panel').scrollIntoView({behavior:'smooth',block:'start'}),100);
   }else{$('admin-msg').textContent='Senha incorreta.';$('admin-msg').style.display='block';$('admin-pwd').value='';}
 }
-function fecharAdmin(){adminLogado=false;localStorage.removeItem('frota_admin');$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';}
+function fecharAdmin(){adminLogado=false;localStorage.removeItem('frota_admin');$('admin-panel').style.display='none';$('admin-topnav').classList.remove('on');$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';}
 function aTab(n){
   ['aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem','depto','senha','dashboard','avisos','manutencao','custos','financeiro'].forEach(x=>{
     $('atb-'+x)?.classList.toggle('on',x===n);
     $('ap-'+x)?.classList.toggle('on',x===n);
+    $('atnav-'+x)?.classList.toggle('on',x===n);
   });
   if(n==='reservas')renderTodasRes();
   if(n==='veiculos')renderVeiculosAdm();
@@ -1947,6 +1988,8 @@ function initSenhaTab(){
   const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
   const tab=$('atb-senha');
   if(tab) tab.style.display=isSuperAdmin?'flex':'none';
+  const atnav=$('atnav-senha');
+  if(atnav) atnav.style.display=isSuperAdmin?'':'none';
 }
 
 function getAdminPwd(){
