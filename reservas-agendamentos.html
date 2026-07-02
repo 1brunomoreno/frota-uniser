@@ -119,11 +119,62 @@ input,select,textarea{font-family:var(--fb)}
 .login-msg{padding:11px 14px;border-radius:var(--r10);font-size:13px;margin-bottom:14px;display:none;align-items:flex-start;gap:9px;border:1px solid;line-height:1.5}
 .login-msg.err{background:var(--danger-l);border-color:#f5c0bc;color:var(--danger);display:flex}
 .login-msg.ok{background:var(--green-l);border-color:#a7f3d0;color:var(--green2);display:flex}
+/* LOGIN TABS */
+.login-tabs{display:flex;border-bottom:2px solid var(--gray-100);margin-bottom:18px}
+.login-tab{flex:1;padding:9px 0;font-size:12px;font-weight:700;font-family:var(--fh);color:var(--gray-400);text-align:center;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:var(--t);letter-spacing:.3px;text-transform:uppercase}
+.login-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+/* TELA FINANCEIRO */
+#s-fin{background:linear-gradient(135deg,#1E3A5F 0%,#166534 100%);align-items:center;justify-content:center;padding:20px}
+.fin-topbar{background:linear-gradient(90deg,#1E3A5F,#166534);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.fin-topbar-left{display:flex;align-items:center;gap:12px}
+.fin-topbar-right{display:flex;align-items:center;gap:8px}
+.fin-logo{height:28px;object-fit:contain}
+.fin-title{font-family:var(--fh);font-size:14px;font-weight:700;color:#fff}
+.fin-subtitle{font-size:11px;color:rgba(255,255,255,.65);font-family:var(--fh)}
+.fin-user-badge{background:rgba(255,255,255,.15);border-radius:20px;padding:5px 12px;font-size:12px;color:#fff;font-family:var(--fh);font-weight:600;display:flex;align-items:center;gap:6px}
+.fin-body{max-width:960px;margin:0 auto;padding:20px 16px 40px}
+.fin-section-title{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin:20px 0 10px;display:flex;align-items:center;gap:6px}
+.fin-card{background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:14px 16px;margin-bottom:10px}
+.fin-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:18px}
+.fin-kpi{border-radius:var(--r10);padding:12px 14px}
+.fin-kpi-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.fin-kpi-val{font-family:var(--fh);font-size:20px;font-weight:800}
+.fin-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:12px;gap:8px}
+.fin-row:last-child{border-bottom:none}
+.fin-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700}
+.fin-comprov-btn{background:none;border:1.5px solid var(--gray-200);border-radius:var(--r6);padding:3px 8px;font-size:11px;cursor:pointer;color:var(--gray-500);display:inline-flex;align-items:center;gap:4px;transition:var(--t)}
+.fin-comprov-btn:hover{border-color:var(--blue);color:var(--blue)}
+.fin-comprov-btn.has-link{border-color:#0EA5E9;color:#0369A1;background:#F0F9FF}
+/* PAINEL ADMIN - aba financeiro */
+.fin-usr-card{background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r10);padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.fin-usr-info{flex:1}
+.fin-usr-name{font-family:var(--fh);font-size:13px;font-weight:700;color:var(--gray-700)}
+.fin-usr-meta{font-size:11px;color:var(--gray-400);margin-top:2px}
+/* DASHBOARD FINANCEIRO */
+.fin-dash-tabs{display:flex;gap:4px;margin-bottom:16px;background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r10);padding:4px}
+.fin-dash-tab{flex:1;padding:8px 12px;border-radius:var(--r8);font-size:12px;font-weight:700;font-family:var(--fh);color:var(--gray-400);text-align:center;cursor:pointer;transition:var(--t);border:none;background:none}
+.fin-dash-tab.on{background:var(--blue);color:#fff}
+.fin-chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.fin-chart-box{background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:16px}
+.fin-chart-box.full{grid-column:1/-1}
+.fin-chart-title{font-family:var(--fh);font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.fin-rank-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100)}
+.fin-rank-row:last-child{border-bottom:none}
+.fin-rank-bar-wrap{flex:1;background:var(--gray-100);border-radius:20px;height:8px;overflow:hidden}
+.fin-rank-bar{height:8px;border-radius:20px;background:linear-gradient(90deg,var(--blue),#0EA5E9);transition:width .6s ease}
+@media(max-width:640px){.fin-chart-grid{grid-template-columns:1fr}.fin-chart-box.full{grid-column:1}}
 .login-info{background:var(--blue-xl);border:1px solid var(--blue-l);border-radius:var(--r10);padding:10px 13px;font-size:12px;color:var(--blue3);display:flex;gap:7px;align-items:flex-start;margin-top:14px;line-height:1.5}
 
 /* TOPBAR */
 .topbar{background:var(--blue);height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;box-shadow:0 2px 14px rgba(0,0,0,.2);position:sticky;top:0;z-index:400;flex-shrink:0}
 .tb-brand{display:flex;align-items:center;gap:12px}
+/* ADMIN NAV NA TOPBAR */
+.admin-topnav{display:none;align-items:center;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;margin:0 12px}
+.admin-topnav::-webkit-scrollbar{display:none}
+.admin-topnav.on{display:flex}
+.atnav{padding:6px 10px;font-size:11px;font-weight:600;font-family:var(--fh);color:rgba(255,255,255,.65);cursor:pointer;border-radius:var(--r6);border:1px solid transparent;white-space:nowrap;transition:var(--t);display:flex;align-items:center;gap:4px;background:none}
+.atnav:hover{color:#fff;background:rgba(255,255,255,.12)}
+.atnav.on{color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.25)}
 .tb-logo-pill{display:flex;align-items:center;gap:10px;background:#fff;padding:5px 14px;border-radius:8px}
 .tb-logo-pill img{height:22px;object-fit:contain}
 .tb-logo-inner-sep{width:1px;height:18px;background:var(--gray-200)}
@@ -266,11 +317,9 @@ textarea.fi{resize:vertical;min-height:68px}
 #cpf-f-admin:checked+span{background:var(--green)!important}
 #cpf-f-admin:checked+span::before{transform:translateX(20px)}
 #cpf-admin-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.admin-panel{background:#fff;border-radius:var(--r18);border:2px solid var(--green);box-shadow:var(--sh1);overflow:hidden;margin-bottom:24px}
-.admin-panel-hdr{background:linear-gradient(120deg,var(--green2),var(--green));padding:14px 20px;display:flex;align-items:center;gap:10px}
-.admin-panel-hdr h2{font-family:var(--fh);font-size:14px;font-weight:700;color:#fff}
-.admin-tabs{display:flex;border-bottom:1.5px solid var(--gray-100);padding:0 16px;overflow-x:auto;scrollbar-width:none}
-.admin-tabs::-webkit-scrollbar{display:none}
+.admin-panel{background:#fff;border-radius:var(--r18);box-shadow:var(--sh1);overflow:hidden;margin-bottom:24px}
+.admin-panel-hdr{display:none}
+.admin-tabs{display:none}
 .atab{padding:10px 13px 8px;font-size:12px;font-weight:600;font-family:var(--fh);color:var(--gray-400);cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;transition:var(--t)}
 .atab:hover{color:var(--green);background:var(--green-l)}
 .atab.on{color:var(--green2);border-bottom-color:var(--green)}
@@ -413,19 +462,150 @@ tr:hover td{background:var(--gray-50)}
       <div class="login-sub">Acesso restrito a motoristas autorizados</div>
     </div>
     <div class="login-body">
-      <div class="login-icon-wrap"><div class="login-icon"><i class="ti ti-id-badge-2"></i></div></div>
-      <label class="login-label">Informe seu CPF</label>
-      <div class="login-msg" id="login-msg"></div>
-      <input type="text" class="login-input" id="cpf-input" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)" onkeydown="if(event.key==='Enter')doLoginCPF()">
-      <div style="height:12px"></div>
-      <button class="login-btn" onclick="doLoginCPF()"><i class="ti ti-login"></i> Acessar sistema</button>
-      <div class="login-info">
-        <i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px"></i>
-        <span>O acesso é exclusivo para condutores que assinaram o <strong>Termo de Responsabilidade</strong>. Em caso de dúvidas, procure o setor de Recursos Humanos.</span>
+      <!-- ABAS -->
+      <div class="login-tabs">
+        <div class="login-tab on" id="ltab-cpf" onclick="switchLoginTab('cpf')"><i class="ti ti-id-badge-2"></i> Condutores</div>
+        <div class="login-tab" id="ltab-fin" onclick="switchLoginTab('fin')"><i class="ti ti-chart-bar"></i> Financeiro</div>
+      </div>
+      <!-- PAINEL CPF -->
+      <div id="lpanel-cpf">
+        <div class="login-icon-wrap"><div class="login-icon"><i class="ti ti-id-badge-2"></i></div></div>
+        <label class="login-label">Informe seu CPF</label>
+        <div class="login-msg" id="login-msg"></div>
+        <input type="text" class="login-input" id="cpf-input" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)" onkeydown="if(event.key==='Enter')doLoginCPF()">
+        <div style="height:12px"></div>
+        <button class="login-btn" onclick="doLoginCPF()"><i class="ti ti-login"></i> Acessar sistema</button>
+        <div class="login-info">
+          <i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px"></i>
+          <span>O acesso é exclusivo para condutores que assinaram o <strong>Termo de Responsabilidade</strong>. Em caso de dúvidas, procure o setor de Recursos Humanos.</span>
+        </div>
+      </div>
+      <!-- PAINEL FINANCEIRO -->
+      <div id="lpanel-fin" style="display:none">
+        <div class="login-icon-wrap"><div class="login-icon" style="background:#F0FDF4;color:#166534"><i class="ti ti-chart-bar"></i></div></div>
+        <label class="login-label">Usuário</label>
+        <div class="login-msg" id="login-fin-msg"></div>
+        <input type="text" class="login-input" id="fin-user-input" placeholder="usuário" style="letter-spacing:0;text-align:left;font-size:14px;padding:12px 14px" onkeydown="if(event.key==='Enter')$('fin-pwd-input').focus()">
+        <div style="height:10px"></div>
+        <label class="login-label">Senha</label>
+        <input type="password" class="login-input" id="fin-pwd-input" placeholder="••••••••" style="letter-spacing:3px;font-size:16px" onkeydown="if(event.key==='Enter')doLoginFin()">
+        <div style="height:12px"></div>
+        <button class="login-btn" style="background:#166534" onclick="doLoginFin()"><i class="ti ti-login"></i> Acessar área financeira</button>
+        <div class="login-info" style="background:#F0FDF4;border-color:#BBF7D0;color:#166534">
+          <i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px"></i>
+          <span>Acesso exclusivo ao <strong>Departamento Financeiro</strong>. Credenciais fornecidas pelo administrador do sistema.</span>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- PAINEL FINANCEIRO -->
+<div class="scr" id="s-fin">
+  <div style="width:100%;min-height:100vh;background:var(--gray-50)">
+    <!-- Topbar -->
+    <div class="fin-topbar">
+      <div class="fin-topbar-left">
+        <img id="fin-lg1" class="fin-logo" alt="UniFECAF">
+        <div style="width:1px;height:24px;background:rgba(255,255,255,.2)"></div>
+        <div>
+          <div class="fin-title"><i class="ti ti-chart-bar"></i> Painel Financeiro</div>
+          <div class="fin-subtitle">Gestão de Frota — Controle de Custos</div>
+        </div>
+      </div>
+      <div class="fin-topbar-right">
+        <div class="fin-user-badge"><i class="ti ti-user"></i> <span id="fin-user-nm">—</span></div>
+        <button class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="abrirTrocarSenhaFin()" title="Alterar senha"><i class="ti ti-key"></i></button>
+        <button class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="doLogoutFin()" title="Sair"><i class="ti ti-logout"></i></button>
+      </div>
+    </div>
+    <!-- Body -->
+    <div class="fin-body" id="fin-body">
+      <!-- Filtros -->
+      <div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:14px 16px;margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:end;flex-wrap:wrap">
+          <div class="fg" style="margin:0"><label class="flbl">Veículo</label><select class="fi" id="fin-fvei" onchange="renderFinAtivo()"><option value="">Todos os veículos</option></select></div>
+          <div class="fg" style="margin:0"><label class="flbl">Mês/Ano</label><input type="month" class="fi" id="fin-fmes" onchange="renderFinAtivo()"></div>
+          <button class="btn btn-p" onclick="renderFinAtivo()"><i class="ti ti-search"></i> Filtrar</button>
+          <button class="btn btn-ghost" onclick="exportarRelatorioFinPDF()" title="Exportar PDF"><i class="ti ti-file-type-pdf"></i> PDF</button>
+        </div>
+      </div>
+      <!-- Abas Dashboard / Lançamentos -->
+      <div class="fin-dash-tabs">
+        <button class="fin-dash-tab on" id="ftab-dash" onclick="switchFinTab('dash')"><i class="ti ti-chart-bar"></i> Dashboard</button>
+        <button class="fin-dash-tab" id="ftab-lanc" onclick="switchFinTab('lanc')"><i class="ti ti-list"></i> Lançamentos</button>
+      </div>
+      <!-- KPIs (sempre visíveis) -->
+      <div class="fin-kpi-grid" id="fin-kpis"></div>
+      <!-- Dashboard -->
+      <div id="fin-dash-sec">
+        <div class="fin-chart-grid">
+          <div class="fin-chart-box full"><div class="fin-chart-title"><i class="ti ti-trending-up"></i> Evolução de Custos por Mês</div><canvas id="fin-chart-evolucao" height="90"></canvas></div>
+          <div class="fin-chart-box"><div class="fin-chart-title"><i class="ti ti-chart-pie"></i> Custo por Veículo</div><canvas id="fin-chart-veiculo" height="200"></canvas></div>
+          <div class="fin-chart-box"><div class="fin-chart-title"><i class="ti ti-chart-donut"></i> Divisão por Categoria</div><canvas id="fin-chart-categoria" height="200"></canvas></div>
+        </div>
+        <div class="fin-chart-box" style="margin-bottom:14px"><div class="fin-chart-title"><i class="ti ti-gas-station"></i> Média CPL (R$/Litro) por Mês</div><canvas id="fin-chart-cpl" height="80"></canvas></div>
+        <div class="fin-chart-box" id="fin-rank-box"><div class="fin-chart-title"><i class="ti ti-trophy"></i> Ranking — Veículos Mais Caros</div><div id="fin-rank-list"></div></div>
+      </div>
+      <!-- Lançamentos -->
+      <div id="fin-lanc-sec" style="display:none">
+        <div id="fin-detalhes"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TROCAR SENHA FINANCEIRO -->
+<div class="ov" id="ov-fin-senha"><div class="modal"><div class="mhdr" style="background:#166534"><h3><i class="ti ti-key"></i> Alterar Senha</h3><button class="xbtn" onclick="cov('ov-fin-senha')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="fg"><label class="flbl">Senha atual <span style="color:var(--danger)">*</span></label><input type="password" class="fi" id="fins-atual" placeholder="••••••••"></div>
+  <div class="fg"><label class="flbl">Nova senha <span style="color:var(--danger)">*</span></label><input type="password" class="fi" id="fins-nova" placeholder="Mínimo 6 caracteres"></div>
+  <div class="fg"><label class="flbl">Confirmar nova senha <span style="color:var(--danger)">*</span></label><input type="password" class="fi" id="fins-conf" placeholder="Repita a nova senha"></div>
+  <div id="fins-msg" style="display:none"></div>
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-fin-senha')">Cancelar</button><button class="btn btn-g" onclick="salvarSenhaFin()"><i class="ti ti-check"></i> Alterar senha</button></div></div></div>
+
+<!-- MODAL COMPROVANTE -->
+<div class="ov" id="ov-comprov"><div class="modal"><div class="mhdr" style="background:#0369A1"><h3><i class="ti ti-link"></i> Comprovante / Nota Fiscal</h3><button class="xbtn" onclick="cov('ov-comprov')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:var(--r10);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1E40AF;display:flex;gap:8px">
+    <i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px"></i>
+    <span>Cole o link do Google Drive do comprovante. Certifique-se de que o compartilhamento está como <strong>"Qualquer pessoa com o link"</strong>.</span>
+  </div>
+  <div class="fg"><label class="flbl">Tipo</label><input class="fi" id="cprov-tipo" readonly style="background:var(--gray-50);color:var(--gray-500)"></div>
+  <div class="fg"><label class="flbl">Referência</label><input class="fi" id="cprov-ref" readonly style="background:var(--gray-50);color:var(--gray-500)"></div>
+  <div class="fg"><label class="flbl">Link do comprovante (Google Drive)</label><input class="fi" id="cprov-url" placeholder="https://drive.google.com/file/d/..."></div>
+  <div id="cprov-preview" style="display:none;margin-top:8px">
+    <a id="cprov-preview-link" target="_blank" style="font-size:12px;color:#0369A1;display:flex;align-items:center;gap:5px"><i class="ti ti-external-link"></i> Visualizar comprovante atual</a>
+  </div>
+  <input type="hidden" id="cprov-vid">
+  <input type="hidden" id="cprov-idx">
+  <input type="hidden" id="cprov-tipo-code">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-comprov')">Cancelar</button><button class="btn" style="background:#0369A1;color:#fff" onclick="salvarComprovante()"><i class="ti ti-check"></i> Salvar link</button></div></div></div>
+
+<!-- MODAL USUÁRIO FINANCEIRO -->
+<div class="ov" id="ov-fin-usr"><div class="modal"><div class="mhdr" style="background:#166534"><h3 id="fin-usr-modal-title"><i class="ti ti-user-plus"></i> Novo Usuário Financeiro</h3><button class="xbtn" onclick="cov('ov-fin-usr')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="fg"><label class="flbl">Nome completo <span style="color:var(--danger)">*</span></label><input class="fi" id="finu-nome" placeholder="Nome do colaborador"></div>
+  <div class="g2">
+    <div class="fg"><label class="flbl">Usuário (login) <span style="color:var(--danger)">*</span></label><input class="fi" id="finu-user" placeholder="Ex: maria.santos" style="font-family:monospace"></div>
+    <div class="fg"><label class="flbl">Senha <span style="color:var(--danger)">*</span></label><input type="password" class="fi" id="finu-pwd" placeholder="Mínimo 6 caracteres"></div>
+  </div>
+  <div class="fg"><label class="flbl">E-mail</label><input type="email" class="fi" id="finu-email" placeholder="email@instituição.com.br"></div>
+  <input type="hidden" id="finu-id">
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-fin-usr')">Cancelar</button><button class="btn btn-g" onclick="salvarFinUsr()"><i class="ti ti-check"></i> Salvar</button></div></div></div>
+
+<!-- MODAL LOGIN ADMIN -->
+<div class="ov" id="ov-admin-login"><div class="modal" style="max-width:360px"><div class="mhdr" style="background:linear-gradient(120deg,var(--green2),var(--green))"><h3><i class="ti ti-shield-check"></i> Painel do Administrador</h3><button class="xbtn" onclick="cov('ov-admin-login')"><i class="ti ti-x"></i></button></div>
+<div class="mbody">
+  <div class="fg"><label class="flbl">Senha do administrador</label>
+    <input type="password" class="fi" id="admin-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPwd()">
+  </div>
+  <div id="admin-msg" style="margin-top:6px;font-size:12px;color:var(--danger);display:none"></div>
+</div>
+<div class="mftr"><button class="btn btn-ghost" onclick="cov('ov-admin-login')">Cancelar</button><button class="btn btn-g" onclick="checkPwd()"><i class="ti ti-lock-open"></i> Entrar</button></div></div></div>
 
 <!-- APP -->
 <div class="scr" id="s-app">
@@ -437,6 +617,23 @@ tr:hover td{background:var(--gray-50)}
       <div class="tb-divider"></div>
       <span class="tb-sys">Gestão de Frota</span>
     </div>
+    <!-- ADMIN NAV (visível só com admin logado) -->
+    <nav class="admin-topnav" id="admin-topnav">
+      <div class="atnav on" id="atnav-aprov" onclick="aTab('aprov')"><i class="ti ti-check"></i> Aprovações</div>
+      <div class="atnav" id="atnav-reservas" onclick="aTab('reservas')"><i class="ti ti-list"></i> Reservas</div>
+      <div class="atnav" id="atnav-veiculos" onclick="aTab('veiculos')"><i class="ti ti-car"></i> Veículos</div>
+      <div class="atnav" id="atnav-relatorio" onclick="aTab('relatorio')"><i class="ti ti-chart-bar"></i> Relatórios</div>
+      <div class="atnav" id="atnav-checklist" onclick="aTab('checklist')"><i class="ti ti-steering-wheel"></i> Checklists</div>
+      <div class="atnav" id="atnav-cpfs" onclick="aTab('cpfs')"><i class="ti ti-id-badge-2"></i> CPFs</div>
+      <div class="atnav" id="atnav-lavagem" onclick="aTab('lavagem')"><i class="ti ti-droplet"></i> Lavagens</div>
+      <div class="atnav" id="atnav-manutencao" onclick="aTab('manutencao')"><i class="ti ti-tool"></i> Manutenção</div>
+      <div class="atnav" id="atnav-custos" onclick="aTab('custos')"><i class="ti ti-coin"></i> Custos</div>
+      <div class="atnav" id="atnav-dashboard" onclick="aTab('dashboard')"><i class="ti ti-chart-line"></i> Dashboard</div>
+      <div class="atnav" id="atnav-depto" onclick="aTab('depto')"><i class="ti ti-chart-pie"></i> Por Depto</div>
+      <div class="atnav" id="atnav-avisos" onclick="aTab('avisos')"><i class="ti ti-speakerphone"></i> Avisos</div>
+      <div class="atnav" id="atnav-financeiro" onclick="aTab('financeiro')"><i class="ti ti-coin"></i> Financeiro</div>
+      <div class="atnav" id="atnav-senha" style="display:none" onclick="aTab('senha')"><i class="ti ti-key"></i> Senha</div>
+    </nav>
     <div class="tb-right">
       <div class="user-chip"><div class="u-av" id="app-av">?</div><span id="app-nm" style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span></div>
       <button class="admin-btn" id="admin-btn" onclick="toggleAdmin()"><i class="ti ti-shield"></i><span id="admin-lbl">Admin</span></button>
@@ -593,18 +790,6 @@ tr:hover td{background:var(--gray-50)}
 
     <!-- ADMIN PANEL -->
     <div class="admin-panel" id="admin-panel" style="display:none">
-      <div class="admin-panel-hdr"><i class="ti ti-shield-check" style="font-size:18px;color:rgba(255,255,255,.85)"></i><h2>Painel do Administrador</h2></div>
-      <div id="admin-login-wrap" style="padding:18px 20px">
-        <div style="max-width:320px">
-          <label class="flbl">Senha do administrador</label>
-          <input type="password" class="fi" id="admin-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPwd()" style="margin-bottom:10px">
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-g" onclick="checkPwd()"><i class="ti ti-lock-open"></i> Entrar</button>
-            <button class="btn btn-ghost" onclick="fecharAdmin()"><i class="ti ti-x"></i> Cancelar</button>
-          </div>
-          <div id="admin-msg" style="margin-top:9px;font-size:12px;color:var(--danger);display:none"></div>
-        </div>
-      </div>
       <div id="admin-tabs-wrap" style="display:none">
         <div class="admin-tabs">
           <div class="atab on" id="atb-aprov" onclick="aTab('aprov')"><i class="ti ti-check"></i> Aprovações</div>
@@ -619,6 +804,7 @@ tr:hover td{background:var(--gray-50)}
           <div class="atab" id="atb-dashboard" onclick="aTab('dashboard')"><i class="ti ti-chart-line"></i> Dashboard</div>
           <div class="atab" id="atb-depto" onclick="aTab('depto')"><i class="ti ti-chart-pie"></i> Por Depto</div>
           <div class="atab" id="atb-avisos" onclick="aTab('avisos')"><i class="ti ti-speakerphone"></i> Avisos</div>
+          <div class="atab" id="atb-financeiro" onclick="aTab('financeiro')"><i class="ti ti-coin"></i> Financeiro</div>
           <div class="atab" id="atb-senha" onclick="aTab('senha')" style="display:none"><i class="ti ti-key"></i> Senha</div>
         </div>
         <div class="admin-pane on" id="ap-aprov"></div>
@@ -751,6 +937,56 @@ tr:hover td{background:var(--gray-50)}
             <button class="btn btn-p btn-sm" onclick="abrirCPFModal()"><i class="ti ti-plus"></i> Cadastrar CPF</button>
           </div>
           <div id="cpf-list-wrap" style="background:#fff;border-radius:var(--r14);border:1.5px solid var(--gray-200);overflow:hidden"></div>
+        </div>
+
+        <!-- PAINEL FINANCEIRO ADMIN -->
+        <div class="admin-pane" id="ap-financeiro">
+          <!-- Sub-abas -->
+          <div class="fin-dash-tabs" style="margin-bottom:14px">
+            <button class="fin-dash-tab on" id="fadm-tab-dash" onclick="switchFinAdmTab('dash')"><i class="ti ti-chart-bar"></i> Dashboard</button>
+            <button class="fin-dash-tab" id="fadm-tab-lanc" onclick="switchFinAdmTab('lanc')"><i class="ti ti-list"></i> Lançamentos</button>
+            <button class="fin-dash-tab" id="fadm-tab-usr" onclick="switchFinAdmTab('usr')"><i class="ti ti-users"></i> Usuários</button>
+          </div>
+          <!-- Dashboard Admin -->
+          <div id="fadm-dash-sec">
+            <!-- Filtros -->
+            <div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:12px 14px;margin-bottom:14px">
+              <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
+                <div class="fg" style="margin:0"><label class="flbl">Veículo</label><select class="fi" id="fadm-fvei" onchange="renderFinDashAdm()"><option value="">Todos</option></select></div>
+                <div class="fg" style="margin:0"><label class="flbl">Mês/Ano</label><input type="month" class="fi" id="fadm-fmes" onchange="renderFinDashAdm()"></div>
+                <button class="btn btn-p btn-sm" onclick="renderFinDashAdm()"><i class="ti ti-search"></i> Filtrar</button>
+              </div>
+            </div>
+            <div class="fin-kpi-grid" id="fadm-kpis"></div>
+            <div class="fin-chart-grid">
+              <div class="fin-chart-box full"><div class="fin-chart-title"><i class="ti ti-trending-up"></i> Evolução de Custos por Mês</div><canvas id="fadm-chart-evolucao" height="90"></canvas></div>
+              <div class="fin-chart-box"><div class="fin-chart-title"><i class="ti ti-chart-pie"></i> Custo por Veículo</div><canvas id="fadm-chart-veiculo" height="200"></canvas></div>
+              <div class="fin-chart-box"><div class="fin-chart-title"><i class="ti ti-chart-donut"></i> Divisão por Categoria</div><canvas id="fadm-chart-categoria" height="200"></canvas></div>
+            </div>
+            <div class="fin-chart-box" style="margin-bottom:14px"><div class="fin-chart-title"><i class="ti ti-gas-station"></i> Média CPL por Mês</div><canvas id="fadm-chart-cpl" height="80"></canvas></div>
+            <div class="fin-chart-box" id="fadm-rank-box"><div class="fin-chart-title"><i class="ti ti-trophy"></i> Ranking — Veículos Mais Caros</div><div id="fadm-rank-list"></div></div>
+          </div>
+          <!-- Lançamentos Admin -->
+          <div id="fadm-lanc-sec" style="display:none">
+            <div style="background:#fff;border:1.5px solid var(--gray-200);border-radius:var(--r12);padding:12px 14px;margin-bottom:14px">
+              <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:end">
+                <div class="fg" style="margin:0"><label class="flbl">Veículo</label><select class="fi" id="fadm-lanc-vei" onchange="renderFinLancAdm()"><option value="">Todos</option></select></div>
+                <div class="fg" style="margin:0"><label class="flbl">Mês/Ano</label><input type="month" class="fi" id="fadm-lanc-mes" onchange="renderFinLancAdm()"></div>
+                <button class="btn btn-p btn-sm" onclick="renderFinLancAdm()"><i class="ti ti-search"></i> Filtrar</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportarRelatorioFinPDFAdm()"><i class="ti ti-file-type-pdf"></i> PDF</button>
+              </div>
+            </div>
+            <div class="fin-kpi-grid" id="fadm-lanc-kpis"></div>
+            <div id="fadm-lanc-det"></div>
+          </div>
+          <!-- Usuários -->
+          <div id="fadm-usr-sec" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+              <div style="font-family:var(--fh);font-size:13px;font-weight:700;color:var(--gray-700)"><i class="ti ti-users"></i> Usuários do Módulo Financeiro</div>
+              <button class="btn btn-g btn-sm" onclick="abrirFinUsr()"><i class="ti ti-user-plus"></i> Novo usuário</button>
+            </div>
+            <div id="fin-usr-list"></div>
+          </div>
         </div>
 
         <div class="admin-pane" id="ap-senha">
@@ -1132,8 +1368,8 @@ window.addEventListener('DOMContentLoaded',async()=>{
       if(localStorage.getItem('frota_admin')==='1'){
         adminLogado=true;
         $('admin-panel').style.display='block';
-        $('admin-login-wrap').style.display='none';
         $('admin-tabs-wrap').style.display='block';
+        $('admin-topnav').classList.add('on');
         $('admin-btn').classList.add('admin-active');
         $('admin-lbl').textContent='Admin ativo';
         renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
@@ -1205,8 +1441,8 @@ function aplicarSessao(found){
     adminLogado=true;
     localStorage.setItem('frota_admin','1');
     $('admin-panel').style.display='block';
-    $('admin-login-wrap').style.display='none';
     $('admin-tabs-wrap').style.display='block';
+    $('admin-topnav').classList.add('on');
     $('admin-btn').classList.add('admin-active');
     $('admin-lbl').textContent='Admin ativo';
     renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
@@ -1692,24 +1928,33 @@ async function salvarRetorno(){
 }
 
 /* ADMIN */
-function toggleAdmin(){if(adminLogado){fecharAdmin();return}$('admin-panel').style.display='block';$('admin-login-wrap').style.display='block';$('admin-tabs-wrap').style.display='none';$('admin-pwd').value='';$('admin-msg').style.display='none';$('admin-panel').scrollIntoView({behavior:'smooth',block:'start'});}
+function toggleAdmin(){if(adminLogado){fecharAdmin();return}$('admin-pwd').value='';$('admin-msg').style.display='none';ov('ov-admin-login');}
 async function checkPwd(){
   if($('admin-pwd').value===getAdminPwd()){
     adminLogado=true;
     localStorage.setItem('frota_admin','1');
-    $('admin-login-wrap').style.display='none';$('admin-tabs-wrap').style.display='block';
+    cov('ov-admin-login');
+    // Mostrar nav na topbar
+    $('admin-topnav').classList.add('on');
     $('admin-btn').classList.add('admin-active');$('admin-lbl').textContent='Admin ativo';
+    // Mostrar painel de conteúdo
+    $('admin-panel').style.display='block';
+    $('admin-tabs-wrap').style.display='block';
     renderAprov();initAdmFilters();renderCkAdm();renderCPFs();
     await loadLavagens();renderLavAdm();initLavSec();
     initSenhaTab();
+    aTab('aprov');
     toast('Modo administrador ativado.','ok');
+    // Scroll suave até painel
+    setTimeout(()=>$('admin-panel').scrollIntoView({behavior:'smooth',block:'start'}),100);
   }else{$('admin-msg').textContent='Senha incorreta.';$('admin-msg').style.display='block';$('admin-pwd').value='';}
 }
-function fecharAdmin(){adminLogado=false;localStorage.removeItem('frota_admin');$('admin-panel').style.display='none';$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';}
+function fecharAdmin(){adminLogado=false;localStorage.removeItem('frota_admin');$('admin-panel').style.display='none';$('admin-topnav').classList.remove('on');$('admin-btn').classList.remove('admin-active');$('admin-lbl').textContent='Admin';}
 function aTab(n){
-  ['aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem','depto','senha','dashboard','avisos','manutencao','custos'].forEach(x=>{
+  ['aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem','depto','senha','dashboard','avisos','manutencao','custos','financeiro'].forEach(x=>{
     $('atb-'+x)?.classList.toggle('on',x===n);
     $('ap-'+x)?.classList.toggle('on',x===n);
+    $('atnav-'+x)?.classList.toggle('on',x===n);
   });
   if(n==='reservas')renderTodasRes();
   if(n==='veiculos')renderVeiculosAdm();
@@ -1723,6 +1968,7 @@ function aTab(n){
   if(n==='avisos'){renderAvisosAdm();}
   if(n==='manutencao'){initManutTab();renderManutencaoAdm();}
   if(n==='custos'){initCustosTab();renderCustos();}
+  if(n==='financeiro'){switchFinAdmTab('dash');}
 }
 
 /* SENHA ADMIN — só acessível ao super admin */
@@ -1730,6 +1976,8 @@ function initSenhaTab(){
   const isSuperAdmin=currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF;
   const tab=$('atb-senha');
   if(tab) tab.style.display=isSuperAdmin?'flex':'none';
+  const atnav=$('atnav-senha');
+  if(atnav) atnav.style.display=isSuperAdmin?'':'none';
 }
 
 function getAdminPwd(){
@@ -2662,6 +2910,541 @@ function renderLavStats(){
       ${ultima?`<div style="font-size:11px;color:var(--gray-500);margin-top:5px">Última: ${fmt(ultima.data_confirmada)}</div>`:'<div style="font-size:11px;color:var(--gray-300);margin-top:5px">Nenhuma ainda</div>'}
     </div>`;
   }).join('');
+}
+
+
+/* ============================================================
+   MÓDULO FINANCEIRO
+============================================================ */
+let finUser=null;
+let finUsuarios=[];
+
+function switchLoginTab(tab){
+  $('ltab-cpf').classList.toggle('on',tab==='cpf');
+  $('ltab-fin').classList.toggle('on',tab==='fin');
+  $('lpanel-cpf').style.display=tab==='cpf'?'':'none';
+  $('lpanel-fin').style.display=tab==='fin'?'':'none';
+}
+
+async function loadFinUsuarios(){
+  const{data,error}=await SB.from('usuarios_financeiro').select('*').order('nome');
+  if(!error) finUsuarios=data||[];
+}
+
+async function doLoginFin(){
+  const usuario=$('fin-user-input').value.trim().toLowerCase();
+  const senha=$('fin-pwd-input').value;
+  const msg=$('login-fin-msg');
+  msg.style.display='none';
+  if(!usuario||!senha){msg.className='login-msg err';msg.innerHTML='<i class="ti ti-alert-circle"></i><span>Preencha usuário e senha.</span>';msg.style.display='flex';return;}
+  const{data,error}=await SB.from('usuarios_financeiro').select('*').eq('usuario',usuario).eq('ativo',true).single();
+  if(error||!data){msg.className='login-msg err';msg.innerHTML='<i class="ti ti-lock"></i><span>Usuário não encontrado ou inativo.</span>';msg.style.display='flex';return;}
+  if(btoa(senha)!==data.senha_hash){msg.className='login-msg err';msg.innerHTML='<i class="ti ti-lock"></i><span>Senha incorreta.</span>';msg.style.display='flex';return;}
+  finUser=data;
+  localStorage.setItem('frota_fin_user',JSON.stringify({id:data.id,usuario:data.usuario,nome:data.nome}));
+  $('fin-user-nm').textContent=data.nome.split(' ')[0];
+  const fl=$('fin-lg1');if(fl){fl.src='data:image/jpeg;base64,'+L1;}
+  const fvei=$('fin-fvei');
+  fvei.innerHTML='<option value="">Todos os veículos</option>';
+  veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome+' ('+v.placa+')';fvei.appendChild(o);});
+  $('fin-fmes').value=TODAY.slice(0,7);
+  $('s-login').classList.remove('on');
+  $('s-fin').classList.add('on');
+  switchFinTab('dash');
+  _renderFinDash('fin-');
+}
+
+function doLogoutFin(){
+  finUser=null;
+  localStorage.removeItem('frota_fin_user');
+  $('s-fin').classList.remove('on');
+  $('s-login').classList.add('on');
+  $('fin-user-input').value='';
+  $('fin-pwd-input').value='';
+  switchLoginTab('cpf');
+}
+
+function abrirTrocarSenhaFin(){
+  ['fins-atual','fins-nova','fins-conf'].forEach(id=>$(id).value='');
+  const msg=$('fins-msg');if(msg)msg.style.display='none';
+  ov('ov-fin-senha');
+}
+
+async function salvarSenhaFin(){
+  const atual=$('fins-atual').value;
+  const nova=$('fins-nova').value;
+  const conf=$('fins-conf').value;
+  const msg=$('fins-msg');
+  const showMsg=(txt,tipo)=>{msg.className='login-msg '+(tipo==='err'?'err':'ok');msg.innerHTML='<i class="ti ti-'+(tipo==='err'?'alert-circle':'circle-check')+'"></i><span>'+txt+'</span>';msg.style.display='flex';};
+  if(!atual||!nova||!conf){showMsg('Preencha todos os campos.','err');return;}
+  if(btoa(atual)!==finUser.senha_hash){showMsg('Senha atual incorreta.','err');return;}
+  if(nova.length<6){showMsg('A nova senha deve ter ao menos 6 caracteres.','err');return;}
+  if(nova!==conf){showMsg('As senhas não coincidem.','err');return;}
+  const{error}=await SB.from('usuarios_financeiro').update({senha_hash:btoa(nova)}).eq('id',finUser.id);
+  if(error){showMsg('Erro ao salvar: '+error.message,'err');return;}
+  finUser.senha_hash=btoa(nova);
+  showMsg('Senha alterada com sucesso!','ok');
+  setTimeout(()=>cov('ov-fin-senha'),1500);
+  toast('✓ Senha alterada!','ok');
+}
+
+function renderFinanceiro(){
+  const fv=$('fin-fvei')?.value;
+  const mes=$('fin-fmes')?.value;
+  const[ano,mm]=mes?mes.split('-'):[null,null];
+  const de=mes?mes+'-01':null;
+  const ate=mes?mes+'-'+new Date(parseInt(ano),parseInt(mm),0).getDate():null;
+  const periodoLabel=mes?new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Todo o período';
+  const veicFiltrados=fv?veiculos.filter(v=>String(v.id)===fv):veiculos;
+  let grandTotal=0,totalComb=0,totalMnt=0,totalOtros=0;
+  const rows=veicFiltrados.map(v=>{
+    const abasts=(v.abastecimentos||[]).filter(a=>(!de||a.data>=de)&&(!ate||a.data<=ate)).sort((a,b)=>b.data.localeCompare(a.data));
+    abasts.forEach(a=>{a._origIdx=(v.abastecimentos||[]).findIndex(x=>x===a);});
+    const custoAbast=abasts.reduce((s,a)=>s+(a.valor||0),0);
+    const abstsComLitro=abasts.filter(a=>a.litros&&a.valor);
+    const sumLit=abstsComLitro.reduce((s,a)=>s+(a.litros||0),0);
+    const cplMedio=sumLit>0?abstsComLitro.reduce((s,a)=>s+(a.valor||0),0)/sumLit:null;
+    const mnts=(v.manutencoes||[]).filter(m=>m.valor&&(!de||m.data>=de)&&(!ate||m.data<=ate));
+    mnts.forEach(m=>{m._origIdx=(v.manutencoes||[]).findIndex(x=>x===m);});
+    const custoManut=mnts.reduce((s,m)=>s+(m.valor||0),0);
+    const outros=(v.outros_custos||[]).filter(o=>(!de||o.data>=de)&&(!ate||o.data<=ate)).sort((a,b)=>b.data.localeCompare(a.data));
+    outros.forEach(o=>{o._origIdx=(v.outros_custos||[]).findIndex(x=>x===o);});
+    const custoOutros=outros.reduce((s,o)=>s+(o.valor||0),0);
+    const total=custoAbast+custoManut+custoOutros;
+    grandTotal+=total;totalComb+=custoAbast;totalMnt+=custoManut;totalOtros+=custoOutros;
+    if(!total&&!abasts.length&&!mnts.length&&!outros.length)return null;
+    return{v,abasts,custoAbast,cplMedio,sumLit,mnts,custoManut,outros,custoOutros,total};
+  }).filter(Boolean);
+
+  $('fin-kpis').innerHTML=
+    '<div class="fin-kpi" style="background:#FFFBEB;border:1.5px solid #FDE68A">'+
+      '<div class="fin-kpi-lbl" style="color:#92400E">Total geral</div>'+
+      '<div class="fin-kpi-val" style="color:#92400E">R$ '+grandTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>'+
+      '<div style="font-size:10px;color:#B45309;margin-top:2px">'+periodoLabel+'</div>'+
+    '</div>'+
+    '<div class="fin-kpi" style="background:#FEF3C7;border:1.5px solid #FDE68A">'+
+      '<div class="fin-kpi-lbl" style="color:#92400E">&#9981; Combustível</div>'+
+      '<div class="fin-kpi-val" style="color:#D97706">R$ '+totalComb.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>'+
+    '</div>'+
+    '<div class="fin-kpi" style="background:var(--gray-50);border:1.5px solid var(--gray-200)">'+
+      '<div class="fin-kpi-lbl" style="color:var(--gray-400)">&#128295; Manutenções</div>'+
+      '<div class="fin-kpi-val" style="color:var(--gray-700)">R$ '+totalMnt.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>'+
+    '</div>'+
+    '<div class="fin-kpi" style="background:#F5F3FF;border:1.5px solid #DDD6FE">'+
+      '<div class="fin-kpi-lbl" style="color:#5B21B6">&#128203; Outros</div>'+
+      '<div class="fin-kpi-val" style="color:#7C3AED">R$ '+totalOtros.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>'+
+    '</div>';
+
+  if(!rows.length){$('fin-detalhes').innerHTML='<div class="empty"><i class="ti ti-coin-off"></i><h4>Nenhum lançamento no período</h4></div>';return;}
+
+  $('fin-detalhes').innerHTML=rows.map(function(r){
+    let html='<div class="fin-card">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px">';
+    html+='<div><div style="font-family:var(--fh);font-size:14px;font-weight:700;color:var(--gray-700)">'+r.v.nome+'</div>';
+    html+='<div style="font-family:monospace;font-size:11px;color:var(--gray-400)">'+r.v.placa+'</div></div>';
+    html+='<div style="font-family:var(--fh);font-size:18px;font-weight:800;color:#92400E">R$ '+r.total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>';
+    if(r.abasts.length){
+      html+='<div class="fin-section-title" style="margin-top:0"><i class="ti ti-gas-station" style="color:#D97706"></i> Abastecimentos';
+      html+='<span style="font-weight:400;color:var(--gray-400);text-transform:none;letter-spacing:0"> R$ '+r.custoAbast.toLocaleString('pt-BR',{minimumFractionDigits:2})+(r.cplMedio?' · Média R$ '+r.cplMedio.toFixed(2)+'/L':'')+'</span></div>';
+      r.abasts.forEach(function(a){
+        html+='<div class="fin-row">';
+        html+='<div style="flex:1"><span style="font-weight:600;color:var(--gray-700)">'+fmt(a.data)+'</span>';
+        html+='<span style="color:var(--gray-400);margin-left:6px">'+(a.tipo||'')+(a.litros?' · '+a.litros+'L':'')+(a.posto?' · '+a.posto:'')+'</span>';
+        if(a.cpl) html+='<span class="fin-tag" style="background:#FEF3C7;color:#92400E;margin-left:6px">R$ '+a.cpl.toFixed(2)+'/L</span>';
+        html+='</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">';
+        html+='<button class="fin-comprov-btn '+(a.comprovante?'has-link':'')+'" onclick="abrirComprovante(\''+r.v.id+'\','+a._origIdx+',\'abast\')">';
+        html+='<i class="ti '+(a.comprovante?'ti-paperclip':'ti-link')+'"></i> '+(a.comprovante?'Ver':'Anexar')+'</button>';
+        html+='<span style="font-weight:700;color:#D97706;min-width:72px;text-align:right">R$ '+a.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</span></div></div>';
+      });
+    }
+    if(r.mnts.length){
+      html+='<div class="fin-section-title"><i class="ti ti-tool"></i> Manutenções';
+      html+='<span style="font-weight:400;color:var(--gray-400);text-transform:none;letter-spacing:0"> R$ '+r.custoManut.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</span></div>';
+      r.mnts.forEach(function(m){
+        html+='<div class="fin-row">';
+        html+='<div style="flex:1"><span style="font-weight:600;color:var(--gray-700)">'+fmt(m.data)+'</span>';
+        html+='<span style="color:var(--gray-400);margin-left:6px">'+(MTYPE_MAP[m.tipo]||m.tipo)+(m.resp?' · '+m.resp:'')+'</span></div>';
+        html+='<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">';
+        html+='<button class="fin-comprov-btn '+(m.comprovante?'has-link':'')+'" onclick="abrirComprovante(\''+r.v.id+'\','+m._origIdx+',\'manut\')">';
+        html+='<i class="ti '+(m.comprovante?'ti-paperclip':'ti-link')+'"></i> '+(m.comprovante?'NF':'Anexar NF')+'</button>';
+        html+='<span style="font-weight:700;color:#92400E;min-width:72px;text-align:right">R$ '+m.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</span></div></div>';
+      });
+    }
+    if(r.outros.length){
+      html+='<div class="fin-section-title"><i class="ti ti-receipt" style="color:#7C3AED"></i> Outros';
+      html+='<span style="font-weight:400;color:var(--gray-400);text-transform:none;letter-spacing:0"> R$ '+r.custoOutros.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</span></div>';
+      r.outros.forEach(function(o){
+        html+='<div class="fin-row">';
+        html+='<div style="flex:1"><span style="font-weight:600;color:var(--gray-700)">'+fmt(o.data)+'</span>';
+        html+='<span class="fin-tag" style="background:#EDE9FE;color:#5B21B6;margin-left:6px">'+(OC_CAT[o.cat]||o.cat)+'</span>';
+        if(o.desc) html+='<span style="color:var(--gray-400);margin-left:6px">'+o.desc+'</span>';
+        html+='</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">';
+        html+='<button class="fin-comprov-btn '+(o.comprovante?'has-link':'')+'" onclick="abrirComprovante(\''+r.v.id+'\','+o._origIdx+',\'outro\')">';
+        html+='<i class="ti '+(o.comprovante?'ti-paperclip':'ti-link')+'"></i> '+(o.comprovante?'Ver':'Anexar')+'</button>';
+        html+='<span style="font-weight:700;color:#7C3AED;min-width:72px;text-align:right">R$ '+o.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</span></div></div>';
+      });
+    }
+    html+='</div>';
+    return html;
+  }).join('');
+}
+
+/* COMPROVANTES */
+function abrirComprovante(vid,idx,tipo){
+  const v=veiculos.find(x=>String(x.id)===String(vid));
+  let item,tipoLabel,refLabel;
+  if(tipo==='abast'){item=(v.abastecimentos||[])[idx];tipoLabel='Cupom Fiscal — Abastecimento';refLabel=item?fmt(item.data)+' · '+(item.tipo||'')+' · R$ '+(item.valor||0).toFixed(2):'';}
+  else if(tipo==='manut'){item=(v.manutencoes||[])[idx];tipoLabel='Nota Fiscal — Manutenção';refLabel=item?fmt(item.data)+' · '+(MTYPE_MAP[item.tipo]||item.tipo)+' · R$ '+(item.valor||0).toFixed(2):'';}
+  else{item=(v.outros_custos||[])[idx];tipoLabel='Comprovante — Outro custo';refLabel=item?fmt(item.data)+' · '+(OC_CAT[item.cat]||item.cat)+' · R$ '+(item.valor||0).toFixed(2):'';}
+  $('cprov-tipo').value=tipoLabel;
+  $('cprov-ref').value=refLabel;
+  $('cprov-url').value=item?.comprovante||'';
+  $('cprov-vid').value=vid;
+  $('cprov-idx').value=idx;
+  $('cprov-tipo-code').value=tipo;
+  const prev=$('cprov-preview');
+  if(item?.comprovante){$('cprov-preview-link').href=item.comprovante;prev.style.display='';}else{prev.style.display='none';}
+  ov('ov-comprov');
+}
+
+async function salvarComprovante(){
+  const vid=$('cprov-vid').value;
+  const idx=parseInt($('cprov-idx').value);
+  const tipo=$('cprov-tipo-code').value;
+  const url=$('cprov-url').value.trim();
+  const v=veiculos.find(x=>String(x.id)===String(vid));
+  let campo,lista;
+  if(tipo==='abast'){campo='abastecimentos';lista=[...(v.abastecimentos||[])];}
+  else if(tipo==='manut'){campo='manutencoes';lista=[...(v.manutencoes||[])];}
+  else{campo='outros_custos';lista=[...(v.outros_custos||[])];}
+  if(!lista[idx]){toast('Item não encontrado.','err');return;}
+  lista[idx]={...lista[idx],comprovante:url||null};
+  const{error}=await SB.from('veiculos').update({[campo]:lista}).eq('id',vid);
+  if(error){toast('Erro: '+error.message,'err');return;}
+  cov('ov-comprov');
+  await loadData();
+  if($('s-fin').classList.contains('on'))renderFinanceiro();
+  else renderCustos();
+  toast(url?'Comprovante salvo!':'Comprovante removido.','ok');
+}
+
+/* GESTÃO DE USUÁRIOS FINANCEIROS */
+function abrirFinUsr(id){
+  $('finu-id').value=id||'';
+  if(id){
+    const u=finUsuarios.find(x=>String(x.id)===String(id));
+    $('fin-usr-modal-title').innerHTML='<i class="ti ti-pencil"></i> Editar Usuário Financeiro';
+    $('finu-nome').value=u?.nome||'';
+    $('finu-user').value=u?.usuario||'';
+    $('finu-email').value=u?.email||'';
+    $('finu-pwd').value='';
+    $('finu-pwd').placeholder='Deixe em branco para não alterar';
+  }else{
+    $('fin-usr-modal-title').innerHTML='<i class="ti ti-user-plus"></i> Novo Usuário Financeiro';
+    ['finu-nome','finu-user','finu-pwd','finu-email'].forEach(x=>$(x).value='');
+    $('finu-pwd').placeholder='Mínimo 6 caracteres';
+  }
+  ov('ov-fin-usr');
+}
+
+async function salvarFinUsr(){
+  const id=$('finu-id').value;
+  const nome=$('finu-nome').value.trim();
+  const usuario=$('finu-user').value.trim().toLowerCase();
+  const pwd=$('finu-pwd').value;
+  const email=$('finu-email').value.trim();
+  if(!nome||!usuario){toast('Nome e usuário são obrigatórios.','err');return;}
+  if(!id&&pwd.length<6){toast('Senha deve ter ao menos 6 caracteres.','err');return;}
+  if(id&&pwd&&pwd.length<6){toast('Senha deve ter ao menos 6 caracteres.','err');return;}
+  const payload={nome,usuario,email:email||null,ativo:true};
+  if(pwd) payload.senha_hash=btoa(pwd);
+  let error;
+  if(id){
+    ({error}=await SB.from('usuarios_financeiro').update(payload).eq('id',id));
+  }else{
+    const{data:dup}=await SB.from('usuarios_financeiro').select('id').eq('usuario',usuario);
+    if(dup&&dup.length){toast('Usuário já cadastrado.','err');return;}
+    ({error}=await SB.from('usuarios_financeiro').insert([payload]));
+  }
+  if(error){toast('Erro: '+error.message,'err');return;}
+  cov('ov-fin-usr');
+  await loadFinUsuarios();
+  renderFinUsrList();
+  toast(id?'Usuário atualizado!':'Usuário criado!','ok');
+}
+
+async function toggleFinUsrAtivo(id,ativo){
+  const{error}=await SB.from('usuarios_financeiro').update({ativo:!ativo}).eq('id',id);
+  if(error){toast('Erro','err');return;}
+  await loadFinUsuarios();
+  renderFinUsrList();
+  toast(!ativo?'Usuário ativado.':'Usuário desativado.','info');
+}
+
+async function delFinUsr(id){
+  if(!confirm('Excluir este usuário permanentemente?'))return;
+  const{error}=await SB.from('usuarios_financeiro').delete().eq('id',id);
+  if(error){toast('Erro','err');return;}
+  await loadFinUsuarios();
+  renderFinUsrList();
+  toast('Usuário excluído.','info');
+}
+
+function renderFinUsrList(){
+  const el=$('fin-usr-list');if(!el)return;
+  if(!finUsuarios.length){
+    el.innerHTML='<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px">Nenhum usuário cadastrado. Clique em "+ Novo usuário" para adicionar.</div>';
+    return;
+  }
+  el.innerHTML=finUsuarios.map(function(u){
+    return '<div class="fin-usr-card">'+
+      '<div class="fin-usr-info">'+
+        '<div class="fin-usr-name"><i class="ti ti-user" style="color:#166534"></i> '+u.nome+'</div>'+
+        '<div class="fin-usr-meta">Login: <strong style="font-family:monospace">'+u.usuario+'</strong>'+(u.email?' · '+u.email:'')+
+          '<span class="'+(u.ativo?'badge b-ok':'badge b-neg')+'" style="margin-left:8px">'+(u.ativo?'Ativo':'Inativo')+'</span></div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;flex-shrink:0">'+
+        '<button class="btn btn-ghost btn-sm" onclick="abrirFinUsr('+u.id+')" title="Editar"><i class="ti ti-pencil"></i></button>'+
+        '<button class="btn btn-sm" style="'+(u.ativo?'background:#FEF3C7;color:#92400E':'background:#F0FDF4;color:#166534')+'" onclick="toggleFinUsrAtivo('+u.id+','+u.ativo+')" title="'+(u.ativo?'Desativar':'Ativar')+'">'+
+          '<i class="ti '+(u.ativo?'ti-user-off':'ti-user-check')+'"></i> '+(u.ativo?'Desativar':'Ativar')+
+        '</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="delFinUsr('+u.id+')" title="Excluir"><i class="ti ti-trash"></i></button>'+
+      '</div></div>';
+  }).join('');
+}
+
+/* DASHBOARD FINANCEIRO — Charts */
+let _finCharts={};
+
+function _destroyChart(id){if(_finCharts[id]){_finCharts[id].destroy();delete _finCharts[id];}}
+
+function _calcFinData(fv, mes){
+  const[ano,mm]=mes?mes.split('-'):[null,null];
+  const de=mes?mes+'-01':null;
+  const ate=mes?mes+'-'+new Date(parseInt(ano),parseInt(mm),0).getDate():null;
+  const veicFiltrados=fv?veiculos.filter(v=>String(v.id)===fv):veiculos;
+  let grandTotal=0,totalComb=0,totalMnt=0,totalOtros=0;
+  const rows=veicFiltrados.map(v=>{
+    const abasts=(v.abastecimentos||[]).filter(a=>(!de||a.data>=de)&&(!ate||a.data<=ate));
+    abasts.forEach(a=>{a._origIdx=(v.abastecimentos||[]).findIndex(x=>x===a);});
+    const custoAbast=abasts.reduce((s,a)=>s+(a.valor||0),0);
+    const abstsComLitro=abasts.filter(a=>a.litros&&a.valor);
+    const sumLit=abstsComLitro.reduce((s,a)=>s+(a.litros||0),0);
+    const cplMedio=sumLit>0?abstsComLitro.reduce((s,a)=>s+(a.valor||0),0)/sumLit:null;
+    const mnts=(v.manutencoes||[]).filter(m=>m.valor&&(!de||m.data>=de)&&(!ate||m.data<=ate));
+    mnts.forEach(m=>{m._origIdx=(v.manutencoes||[]).findIndex(x=>x===m);});
+    const custoManut=mnts.reduce((s,m)=>s+(m.valor||0),0);
+    const outros=(v.outros_custos||[]).filter(o=>(!de||o.data>=de)&&(!ate||o.data<=ate));
+    outros.forEach(o=>{o._origIdx=(v.outros_custos||[]).findIndex(x=>x===o);});
+    const custoOutros=outros.reduce((s,o)=>s+(o.valor||0),0);
+    const total=custoAbast+custoManut+custoOutros;
+    grandTotal+=total;totalComb+=custoAbast;totalMnt+=custoManut;totalOtros+=custoOutros;
+    return{v,abasts,custoAbast,cplMedio,sumLit,mnts,custoManut,outros,custoOutros,total};
+  });
+  return{rows,grandTotal,totalComb,totalMnt,totalOtros,veicFiltrados};
+}
+
+function _calcEvolucao(){
+  // Pega últimos 6 meses a partir de hoje
+  const meses=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);
+    meses.push(d.toISOString().slice(0,7));
+  }
+  return meses.map(mes=>{
+    const[ano,mm]=mes.split('-');
+    const de=mes+'-01';
+    const ate=mes+'-'+new Date(parseInt(ano),parseInt(mm),0).getDate();
+    let comb=0,mnt=0,outros=0,litros=0,valor=0;
+    veiculos.forEach(v=>{
+      (v.abastecimentos||[]).filter(a=>a.data>=de&&a.data<=ate).forEach(a=>{comb+=(a.valor||0);if(a.litros){litros+=a.litros;valor+=(a.valor||0);}});
+      (v.manutencoes||[]).filter(m=>m.valor&&m.data>=de&&m.data<=ate).forEach(m=>{mnt+=(m.valor||0);});
+      (v.outros_custos||[]).filter(o=>o.data>=de&&o.data<=ate).forEach(o=>{outros+=(o.valor||0);});
+    });
+    const label=new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
+    const cpl=litros>0?valor/litros:null;
+    return{mes,label,comb,mnt,outros,total:comb+mnt+outros,cpl};
+  });
+}
+
+function _renderFinDash(prefix){
+  const fv=$(prefix+'fvei')?.value||'';
+  const mes=$(prefix+'fmes')?.value||'';
+  const{rows,grandTotal,totalComb,totalMnt,totalOtros}=_calcFinData(fv,mes);
+  const evolucao=_calcEvolucao();
+  const PALETTE=['#003E7E','#00A651','#D97706','#7C3AED','#0EA5E9','#DC2626'];
+
+  // KPIs
+  const kpiEl=$(prefix+'kpis');
+  if(kpiEl) kpiEl.innerHTML=
+    '<div class="fin-kpi" style="background:#FFFBEB;border:1.5px solid #FDE68A"><div class="fin-kpi-lbl" style="color:#92400E">Total</div><div class="fin-kpi-val" style="color:#92400E">R$ '+grandTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:#FEF3C7;border:1.5px solid #FDE68A"><div class="fin-kpi-lbl" style="color:#92400E">Combustível</div><div class="fin-kpi-val" style="color:#D97706">R$ '+totalComb.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:var(--gray-50);border:1.5px solid var(--gray-200)"><div class="fin-kpi-lbl" style="color:var(--gray-400)">Manutenções</div><div class="fin-kpi-val" style="color:var(--gray-700)">R$ '+totalMnt.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:#F5F3FF;border:1.5px solid #DDD6FE"><div class="fin-kpi-lbl" style="color:#5B21B6">Outros</div><div class="fin-kpi-val" style="color:#7C3AED">R$ '+totalOtros.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>';
+
+  // Gráfico 1: Evolução por mês (barra empilhada)
+  _destroyChart(prefix+'evolucao');
+  const ctxEv=document.getElementById(prefix+'chart-evolucao');
+  if(ctxEv) _finCharts[prefix+'evolucao']=new Chart(ctxEv,{type:'bar',data:{labels:evolucao.map(e=>e.label),datasets:[{label:'Combustível',data:evolucao.map(e=>e.comb),backgroundColor:'#D97706'},{label:'Manutenções',data:evolucao.map(e=>e.mnt),backgroundColor:'#003E7E'},{label:'Outros',data:evolucao.map(e=>e.outros),backgroundColor:'#7C3AED'}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR')}}}}});
+
+  // Gráfico 2: Pizza por veículo
+  _destroyChart(prefix+'veiculo');
+  const rowsComCusto=rows.filter(r=>r.total>0);
+  const ctxVei=document.getElementById(prefix+'chart-veiculo');
+  if(ctxVei) _finCharts[prefix+'veiculo']=new Chart(ctxVei,{type:'doughnut',data:{labels:rowsComCusto.map(r=>r.v.nome),datasets:[{data:rowsComCusto.map(r=>r.total),backgroundColor:PALETTE}]},options:{responsive:true,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}}}}});
+
+  // Gráfico 3: Pizza por categoria
+  _destroyChart(prefix+'categoria');
+  const ctxCat=document.getElementById(prefix+'chart-categoria');
+  if(ctxCat) _finCharts[prefix+'categoria']=new Chart(ctxCat,{type:'doughnut',data:{labels:['Combustível','Manutenções','Outros'],datasets:[{data:[totalComb,totalMnt,totalOtros],backgroundColor:['#D97706','#003E7E','#7C3AED']}]},options:{responsive:true,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>' R$ '+c.raw.toLocaleString('pt-BR',{minimumFractionDigits:2})}}}}});
+
+  // Gráfico 4: CPL por mês (linha)
+  _destroyChart(prefix+'cpl');
+  const ctxCpl=document.getElementById(prefix+'chart-cpl');
+  const cplData=evolucao.filter(e=>e.cpl!==null);
+  if(ctxCpl) _finCharts[prefix+'cpl']=new Chart(ctxCpl,{type:'line',data:{labels:evolucao.map(e=>e.label),datasets:[{label:'R$/Litro',data:evolucao.map(e=>e.cpl),borderColor:'#D97706',backgroundColor:'rgba(217,119,6,.1)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#D97706'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'R$ '+v.toFixed(2)}}}}});
+
+  // Ranking
+  const rankEl=$(prefix+'rank-list');
+  if(rankEl){
+    const sorted=[...rows].filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
+    const max=sorted[0]?.total||1;
+    rankEl.innerHTML=sorted.length?sorted.map((r,i)=>
+      '<div class="fin-rank-row">'+
+        '<div style="font-family:var(--fh);font-size:11px;font-weight:700;color:'+(i===0?'#D97706':i===1?'var(--gray-500)':'var(--gray-400)')+';width:18px">'+(i+1)+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--gray-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+r.v.nome+'</div>'+
+          '<div class="fin-rank-bar-wrap"><div class="fin-rank-bar" style="width:'+Math.round(r.total/max*100)+'%;background:'+(i===0?'linear-gradient(90deg,#D97706,#F59E0B)':i===1?'linear-gradient(90deg,var(--blue),#0EA5E9)':'linear-gradient(90deg,#7C3AED,#A78BFA)')+'"></div></div>'+
+        '</div>'+
+        '<div style="font-family:var(--fh);font-size:13px;font-weight:800;color:'+(i===0?'#D97706':'var(--gray-700)')+';white-space:nowrap;margin-left:10px">R$ '+r.total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>'+
+      '</div>'
+    ).join(''):'<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:16px">Nenhum custo no período.</div>';
+  }
+}
+
+function switchFinTab(tab){
+  $('ftab-dash').classList.toggle('on',tab==='dash');
+  $('ftab-lanc').classList.toggle('on',tab==='lanc');
+  $('fin-dash-sec').style.display=tab==='dash'?'':'none';
+  $('fin-lanc-sec').style.display=tab==='lanc'?'':'none';
+  if(tab==='dash') _renderFinDash('fin-');
+  if(tab==='lanc') renderFinanceiro();
+}
+
+function renderFinAtivo(){
+  const tab=$('ftab-dash')?.classList.contains('on')?'dash':'lanc';
+  if(tab==='dash') _renderFinDash('fin-');
+  else renderFinanceiro();
+}
+
+function switchFinAdmTab(tab){
+  ['dash','lanc','usr'].forEach(t=>{
+    $('fadm-tab-'+t)?.classList.toggle('on',t===tab);
+  });
+  $('fadm-dash-sec').style.display=tab==='dash'?'':'none';
+  $('fadm-lanc-sec').style.display=tab==='lanc'?'':'none';
+  $('fadm-usr-sec').style.display=tab==='usr'?'':'none';
+  if(tab==='dash') renderFinDashAdm();
+  if(tab==='lanc') renderFinLancAdm();
+  if(tab==='usr'){loadFinUsuarios().then(renderFinUsrList);}
+}
+
+function renderFinDashAdm(){
+  // Preencher select de veículos se vazio
+  const sel=$('fadm-fvei');
+  if(sel&&sel.options.length<=1){
+    veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome+' ('+v.placa+')';sel.appendChild(o);});
+  }
+  if(!$('fadm-fmes').value) $('fadm-fmes').value=TODAY.slice(0,7);
+  _renderFinDash('fadm-');
+}
+
+function renderFinLancAdm(){
+  const sel=$('fadm-lanc-vei');
+  if(sel&&sel.options.length<=1){
+    veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome+' ('+v.placa+')';sel.appendChild(o);});
+  }
+  if(!$('fadm-lanc-mes').value) $('fadm-lanc-mes').value=TODAY.slice(0,7);
+  // Reusar renderFinanceiro mas para o painel admin
+  const fv=$('fadm-lanc-vei')?.value||'';
+  const mes=$('fadm-lanc-mes')?.value||'';
+  const{rows,grandTotal,totalComb,totalMnt,totalOtros}=_calcFinData(fv,mes);
+  const[ano,mm]=mes?mes.split('-'):[null,null];
+  const periodoLabel=mes?new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Todo o período';
+  const kpiEl=$('fadm-lanc-kpis');
+  if(kpiEl) kpiEl.innerHTML=
+    '<div class="fin-kpi" style="background:#FFFBEB;border:1.5px solid #FDE68A"><div class="fin-kpi-lbl" style="color:#92400E">Total — '+periodoLabel+'</div><div class="fin-kpi-val" style="color:#92400E">R$ '+grandTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:#FEF3C7;border:1.5px solid #FDE68A"><div class="fin-kpi-lbl" style="color:#92400E">Combustível</div><div class="fin-kpi-val" style="color:#D97706">R$ '+totalComb.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:var(--gray-50);border:1.5px solid var(--gray-200)"><div class="fin-kpi-lbl" style="color:var(--gray-400)">Manutenções</div><div class="fin-kpi-val" style="color:var(--gray-700)">R$ '+totalMnt.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>'+
+    '<div class="fin-kpi" style="background:#F5F3FF;border:1.5px solid #DDD6FE"><div class="fin-kpi-lbl" style="color:#5B21B6">Outros</div><div class="fin-kpi-val" style="color:#7C3AED">R$ '+totalOtros.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div></div>';
+  // Reusar lógica de detalhes do renderFinanceiro para fadm-lanc-det
+  const det=$('fadm-lanc-det');
+  if(!det)return;
+  if(!rows.filter(r=>r.total>0).length){det.innerHTML='<div class="empty"><i class="ti ti-coin-off"></i><h4>Nenhum lançamento no período</h4></div>';return;}
+  // Gerar HTML dos lançamentos (reusar mesma lógica de renderFinanceiro)
+  const tmpVei=$('fin-fvei')?.value;const tmpMes=$('fin-fmes')?.value;
+  if($('fin-fvei')) $('fin-fvei').value=fv;
+  if($('fin-fmes')) $('fin-fmes').value=mes;
+  renderFinanceiro();
+  const html=$('fin-detalhes')?.innerHTML||'';
+  det.innerHTML=html;
+  if($('fin-fvei')) $('fin-fvei').value=tmpVei||'';
+  if($('fin-fmes')) $('fin-fmes').value=tmpMes||'';
+}
+
+function exportarRelatorioFinPDFAdm(){
+  const fv=$('fadm-lanc-vei')?.value||'';
+  const mes=$('fadm-lanc-mes')?.value||'';
+  // Temporariamente sobrescrever filtros do painel financeiro e chamar exportação
+  const tmpVei=$('fin-fvei')?.value;const tmpMes=$('fin-fmes')?.value;
+  if($('fin-fvei')) $('fin-fvei').value=fv;
+  if($('fin-fmes')) $('fin-fmes').value=mes;
+  exportarRelatorioFinPDF();
+  if($('fin-fvei')) $('fin-fvei').value=tmpVei||'';
+  if($('fin-fmes')) $('fin-fmes').value=tmpMes||'';
+}
+
+/* EXPORTAR PDF FINANCEIRO */
+function exportarRelatorioFinPDF(){
+  const mes=$('fin-fmes')?.value;
+  const fv=$('fin-fvei')?.value;
+  const[ano,mm]=mes?mes.split('-'):[null,null];
+  const periodoLabel=mes?new Date(parseInt(ano),parseInt(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Todo o período';
+  const de=mes?mes+'-01':null;
+  const ate=mes?mes+'-'+new Date(parseInt(ano),parseInt(mm),0).getDate():null;
+  const veicFiltrados=fv?veiculos.filter(v=>String(v.id)===fv):veiculos;
+  let linhas=[],grandTotal=0;
+  veicFiltrados.forEach(function(v){
+    const abasts=(v.abastecimentos||[]).filter(a=>(!de||a.data>=de)&&(!ate||a.data<=ate));
+    const mnts=(v.manutencoes||[]).filter(m=>m.valor&&(!de||m.data>=de)&&(!ate||m.data<=ate));
+    const outros=(v.outros_custos||[]).filter(o=>(!de||o.data>=de)&&(!ate||o.data<=ate));
+    const total=abasts.reduce((s,a)=>s+(a.valor||0),0)+mnts.reduce((s,m)=>s+(m.valor||0),0)+outros.reduce((s,o)=>s+(o.valor||0),0);
+    if(!total)return;
+    grandTotal+=total;
+    linhas.push('<tr style="background:#F6F7FA"><td colspan="5" style="padding:8px 10px;font-weight:700;font-size:13px">'+v.nome+' ('+v.placa+')</td><td style="padding:8px 10px;font-weight:700;font-size:13px;text-align:right">R$ '+total.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td></tr>');
+    abasts.forEach(function(a){
+      const cpl=a.cpl?' · R$ '+a.cpl.toFixed(2)+'/L':'';
+      linhas.push('<tr><td style="padding:5px 10px">'+fmt(a.data)+'</td><td>Abastecimento</td><td>'+(a.tipo||'')+(a.litros?' '+a.litros+'L':'')+cpl+'</td><td>'+(a.posto||'—')+'</td><td style="text-align:center">'+(a.comprovante?'<a href="'+a.comprovante+'" target="_blank">Ver</a>':'—')+'</td><td style="text-align:right;font-weight:600">R$ '+(a.valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td></tr>');
+    });
+    mnts.forEach(function(m){
+      linhas.push('<tr><td style="padding:5px 10px">'+fmt(m.data)+'</td><td>Manutenção</td><td>'+(MTYPE_MAP[m.tipo]||m.tipo)+'</td><td>'+(m.resp||'—')+'</td><td style="text-align:center">'+(m.comprovante?'<a href="'+m.comprovante+'" target="_blank">NF</a>':'—')+'</td><td style="text-align:right;font-weight:600">R$ '+m.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td></tr>');
+    });
+    outros.forEach(function(o){
+      linhas.push('<tr><td style="padding:5px 10px">'+fmt(o.data)+'</td><td>'+(OC_CAT[o.cat]||o.cat)+'</td><td>'+(o.desc||'—')+'</td><td>—</td><td style="text-align:center">'+(o.comprovante?'<a href="'+o.comprovante+'" target="_blank">Ver</a>':'—')+'</td><td style="text-align:right;font-weight:600">R$ '+o.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td></tr>');
+    });
+  });
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório Financeiro — '+periodoLabel+'</title>'+
+    '<style>body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:24px}h1{font-size:18px;margin-bottom:4px}h2{font-size:13px;font-weight:400;color:#666;margin-bottom:20px}table{width:100%;border-collapse:collapse}th{background:#003E7E;color:#fff;padding:7px 10px;text-align:left;font-size:11px}td{border-bottom:1px solid #e5e7eb;font-size:12px;padding:5px 10px}.total-row{background:#FFFBEB!important;font-weight:700}a{color:#003E7E}</style>'+
+    '</head><body>'+
+    '<h1>Relatório Financeiro de Frota</h1>'+
+    '<h2>UniFECAF &amp; Colégio SER &nbsp;·&nbsp; '+periodoLabel+' &nbsp;·&nbsp; Gerado em '+new Date().toLocaleDateString('pt-BR')+'</h2>'+
+    '<table><thead><tr><th>Data</th><th>Tipo</th><th>Detalhes</th><th>Fornecedor/Posto</th><th>Comprovante</th><th>Valor</th></tr></thead>'+
+    '<tbody>'+linhas.join('')+
+    '<tr class="total-row"><td colspan="5" style="padding:10px;text-align:right;font-size:14px">TOTAL GERAL</td><td style="text-align:right;font-size:14px;padding:10px">R$ '+grandTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</td></tr>'+
+    '</tbody></table></body></html>';
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){w.print();},800);
 }
 
 </script>
