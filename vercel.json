@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/reservas-agendamentos.html" }
+  ]
+}
