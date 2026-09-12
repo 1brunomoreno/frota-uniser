@@ -1469,7 +1469,8 @@ const L2='/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbn
 /* STATE */
 let SB,veiculos=[],reservas=[],cpfs=[],currentUser=null,adminLogado=false,currentAdminTab='inicio';
 let calY=new Date().getFullYear(),calM=new Date().getMonth();
-const TODAY=new Date().toISOString().split('T')[0];
+const _agora=new Date();
+const TODAY=_agora.getFullYear()+'-'+String(_agora.getMonth()+1).padStart(2,'0')+'-'+String(_agora.getDate()).padStart(2,'0');
 const NOW=new Date().toTimeString().slice(0,5);
 const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const DOWS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -3358,8 +3359,7 @@ async function delLavagem(id){
 
 async function marcarPago(id){
   if(!confirm('Confirmar que o pagamento desta lavagem foi efetuado?'))return;
-  const hoje=new Date().toISOString().slice(0,10);
-  const{error}=await SB.from('lavagens').update({pagamento:'pago',pago_em:hoje}).eq('id',id);
+  const{error}=await SB.from('lavagens').update({pagamento:'pago',pago_em:TODAY}).eq('id',id);
   if(error){
     if(error.message?.includes('pagamento')||error.message?.includes('pago_em')){
       toast('Execute o SQL de atualização do banco antes de usar esta função.','err');
