@@ -689,6 +689,7 @@ tr:hover td{background:var(--gray-50)}
       <div class="atnav" id="atnav-cpfs" onclick="aTab('cpfs')"><i class="ti ti-id-badge-2"></i> CPFs</div>
       <div class="atnav" id="atnav-lavagem" onclick="aTab('lavagem')"><i class="ti ti-droplet"></i> Lavagens</div>
       <div class="atnav" id="atnav-manutencao" onclick="aTab('manutencao')"><i class="ti ti-tool"></i> Manutenção</div>
+      <div class="atnav" id="atnav-manual" onclick="aTab('manual')"><i class="ti ti-clipboard-plus"></i> Lançamento Manual</div>
       <div class="atnav" id="atnav-custos" onclick="aTab('custos')"><i class="ti ti-coin"></i> Custos</div>
       <div class="atnav" id="atnav-dashboard" onclick="aTab('dashboard')"><i class="ti ti-chart-line"></i> Dashboard</div>
       <div class="atnav" id="atnav-depto" onclick="aTab('depto')"><i class="ti ti-chart-pie"></i> Por Depto</div>
@@ -873,6 +874,7 @@ tr:hover td{background:var(--gray-50)}
           <div class="atab" id="atb-cpfs" onclick="aTab('cpfs')"><i class="ti ti-id-badge-2"></i> CPFs</div>
           <div class="atab" id="atb-lavagem" onclick="aTab('lavagem')"><i class="ti ti-droplet"></i> Lavagens</div>
           <div class="atab" id="atb-manutencao" onclick="aTab('manutencao')"><i class="ti ti-tool"></i> Manutenção</div>
+          <div class="atab" id="atb-manual" onclick="aTab('manual')"><i class="ti ti-clipboard-plus"></i> Lançamento Manual</div>
           <div class="atab" id="atb-custos" onclick="aTab('custos')"><i class="ti ti-coin"></i> Custos</div>
           <div class="atab" id="atb-dashboard" onclick="aTab('dashboard')"><i class="ti ti-chart-line"></i> Dashboard</div>
           <div class="atab" id="atb-depto" onclick="aTab('depto')"><i class="ti ti-chart-pie"></i> Por Depto</div>
@@ -948,6 +950,58 @@ tr:hover td{background:var(--gray-50)}
           </div>
           <div id="mn2-resumo" style="display:none;margin-bottom:12px"></div>
           <div id="mn2-list"></div>
+        </div>
+
+        <!-- LANÇAMENTO MANUAL -->
+        <div class="admin-pane" id="ap-manual">
+          <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:var(--r10);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1E40AF;display:flex;gap:8px">
+            <i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px"></i>
+            <span>Use essa aba pra registrar um uso que já aconteceu mas não foi lançado no sistema na hora — aceita datas passadas. Se você preencher o Km de saída e retorno, o lançamento já entra como <strong>Concluído</strong>, com o checklist completo; se deixar em branco, entra como <strong>Aprovado</strong>, sem checklist.</span>
+          </div>
+          <div class="g2">
+            <div class="fg"><label class="flbl">Veículo</label><select class="fi" id="lm-vei"></select></div>
+            <div class="fg"><label class="flbl">Departamento</label><input class="fi" id="lm-dep" placeholder="Ex: Facilities"></div>
+          </div>
+          <div class="g2">
+            <div class="fg"><label class="flbl">Responsável</label><input class="fi" id="lm-resp" placeholder="Nome de quem usou o veículo"></div>
+            <div class="fg"><label class="flbl">Contato / Ramal</label><input class="fi" id="lm-tel"></div>
+          </div>
+          <div class="fg">
+            <label class="flbl">Data de utilização</label>
+            <input type="date" class="fi" id="lm-data">
+          </div>
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--gray-500);margin-bottom:10px;cursor:pointer">
+            <input type="checkbox" id="lm-multidia" onchange="$('lm-data-ret-wrap').style.display=$('lm-multidia').checked?'block':'none'" style="width:16px;height:16px;accent-color:var(--blue)">
+            Uso de múltiplos dias
+          </label>
+          <div class="fg" id="lm-data-ret-wrap" style="display:none">
+            <label class="flbl">Data de retorno</label>
+            <input type="date" class="fi" id="lm-data-ret">
+          </div>
+          <div class="g2">
+            <div class="fg"><label class="flbl">Hora de saída</label><input type="time" class="fi" id="lm-hsai"></div>
+            <div class="fg"><label class="flbl">Hora de retorno</label><input type="time" class="fi" id="lm-hret"></div>
+          </div>
+          <div class="fg"><label class="flbl">Destino / Finalidade</label><input class="fi" id="lm-dst" placeholder="Ex: Ação Kaçula"></div>
+          <div style="border-top:1px solid var(--gray-200);margin:14px 0;padding-top:14px">
+            <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px">Checklist retroativo (opcional)</div>
+            <div class="g2">
+              <div class="fg"><label class="flbl">Km de saída</label><input type="number" class="fi" id="lm-km-saida"></div>
+              <div class="fg"><label class="flbl">Km de retorno</label><input type="number" class="fi" id="lm-km-retorno"></div>
+            </div>
+            <div class="fg">
+              <label class="flbl">Condição na devolução</label>
+              <select class="fi" id="lm-cond">
+                <option value="ok">Boas condições</option>
+                <option value="avaria">Avaria</option>
+              </select>
+            </div>
+            <div class="fg"><label class="flbl">Observações</label><textarea class="fi" id="lm-obs" rows="2" style="resize:vertical" placeholder="Detalhes, avarias, abastecimento…"></textarea></div>
+          </div>
+          <div class="form-footer">
+            <button class="btn btn-ghost" onclick="abrirLancamentoManual()"><i class="ti ti-x"></i> Limpar</button>
+            <button class="btn btn-p" onclick="salvarLancamentoManual()"><i class="ti ti-check"></i> Registrar lançamento</button>
+          </div>
         </div>
 
         <!-- CUSTOS -->
@@ -1920,6 +1974,62 @@ _${primeiroNome} — ${dep}_`;
 // agenda pra manutenção programada (não são viagens reais)
 const MANUT_MARK='🔧 Manutenção Programada';
 function _isManutBlock(r){return r.responsavel===MANUT_MARK;}
+function abrirLancamentoManual(){
+  const s=$('lm-vei');
+  if(s) s.innerHTML=veiculos.map(v=>`<option value="${v.id}">${v.nome} (${v.placa})</option>`).join('');
+  ['lm-dep','lm-resp','lm-tel','lm-dst','lm-obs','lm-km-saida','lm-km-retorno'].forEach(id=>{const el=$(id);if(el)el.value='';});
+  $('lm-multidia').checked=false;
+  $('lm-data-ret-wrap').style.display='none';
+  $('lm-data-ret').value='';
+  $('lm-data').value=TODAY;
+  $('lm-hsai').value='';$('lm-hret').value='';
+  $('lm-cond').value='ok';
+}
+async function salvarLancamentoManual(){
+  const vid=$('lm-vei').value;
+  const dep=$('lm-dep').value.trim(),resp=$('lm-resp').value.trim(),tel=$('lm-tel').value.trim();
+  const data=$('lm-data').value;
+  const multidia=$('lm-multidia').checked;
+  const dataRet=multidia?($('lm-data-ret').value||data):data;
+  const hsai=$('lm-hsai').value,hret=$('lm-hret').value;
+  const dst=$('lm-dst').value.trim();
+  const obs=$('lm-obs').value.trim();
+  const kmSai=$('lm-km-saida').value?parseInt($('lm-km-saida').value):null;
+  const kmRet=$('lm-km-retorno').value?parseInt($('lm-km-retorno').value):null;
+  const cond=$('lm-cond').value;
+
+  if(!vid||!dep||!resp||!data||!dataRet||!hsai||!hret||!dst){toast('Preencha todos os campos obrigatórios.','err');return}
+  if(dataRet<data){toast('A data de retorno não pode ser anterior à data de utilização.','err');return}
+  if((kmSai&&!kmRet)||(!kmSai&&kmRet)){toast('Preencha os dois campos de km, ou deixe os dois em branco.','err');return}
+  if(kmSai&&kmRet&&kmRet<kmSai){toast('O km de retorno não pode ser menor que o km de saída.','err');return}
+
+  const v=veiculos.find(x=>String(x.id)===String(vid));
+  const temChecklist=kmSai!==null&&kmRet!==null;
+  const checklist=temChecklist?{
+    saida_data:data,saida_hora:hsai,saida_km:kmSai,saida_cond:'ok',saida_obs:'',
+    retorno_data:dataRet,retorno_hora:hret,retorno_km:kmRet,retorno_cond:cond,retorno_obs:obs
+  }:{};
+  const statusFinal=temChecklist?'concluido':'aprovado';
+  const historico=[{acao:'lançamento manual retroativo',por:currentUser?.nome||'Administrador',em:new Date().toISOString(),detalhes:'Uso não lançado na hora — registrado manualmente pelo admin'}];
+
+  // Insere como pendente (única forma permitida pela política de segurança) e
+  // em seguida atualiza pro status final
+  const{data:rows,error}=await SB.from('reservas').insert([{veiculo_id:vid,departamento:dep,responsavel:resp,contato:tel,data_saida:data,data_retorno:dataRet,hora_saida:hsai,hora_retorno:hret,destino:dst,observacoes:obs,status:'pendente',feedback:'',checklist:{},criado_em:new Date().toISOString()}]).select();
+  if(error){toast(_msgErroReserva(error),'err',7000);return}
+  const novoId=rows[0].id;
+  const{error:error2}=await SB.from('reservas').update({status:statusFinal,checklist,historico}).eq('id',novoId);
+  if(error2){
+    await SB.from('reservas').delete().eq('id',novoId);
+    toast(_msgErroReserva(error2),'err',7000);
+    return;
+  }
+  if(temChecklist&&v&&kmRet>(v.km_atual||0)){
+    await SB.from('veiculos').update({km_atual:kmRet}).eq('id',v.id);
+  }
+  await loadData();renderAll();renderAprov();
+  abrirLancamentoManual();
+  toast(`✓ Lançamento registrado — ${v?.nome} em ${fmt(data)}${dataRet!==data?' a '+fmt(dataRet):''}, marcado como ${statusFinal==='concluido'?'Concluído':'Aprovado'}.`,'ok',6000);
+}
 function abrirBloqueioManut(){
   const s=$('bq-vei');
   s.innerHTML=veiculos.map(v=>`<option value="${v.id}">${v.nome} (${v.placa})</option>`).join('');
@@ -2285,7 +2395,7 @@ function fecharAdmin(){adminLogado=false;localStorage.removeItem('frota_admin');
 function aTab(n){
   currentAdminTab=n;
   atualizarModoAdmin();
-  ['inicio','aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem','depto','senha','dashboard','avisos','manutencao','custos','financeiro'].forEach(x=>{
+  ['inicio','aprov','reservas','veiculos','relatorio','checklist','cpfs','lavagem','depto','senha','dashboard','avisos','manutencao','manual','custos','financeiro'].forEach(x=>{
     $('atb-'+x)?.classList.toggle('on',x===n);
     $('ap-'+x)?.classList.toggle('on',x===n);
     $('atnav-'+x)?.classList.toggle('on',x===n);
@@ -2306,6 +2416,7 @@ function aTab(n){
   if(n==='dashboard'){renderDashboard();}
   if(n==='avisos'){renderAvisosAdm();}
   if(n==='manutencao'){initManutTab();renderManutencaoAdm();}
+  if(n==='manual'){abrirLancamentoManual();}
   if(n==='custos'){initCustosTab();renderCustos();}
   if(n==='financeiro'){switchFinAdmTab('dash');}
 }
