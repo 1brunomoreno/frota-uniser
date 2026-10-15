@@ -948,6 +948,7 @@ tr:hover td{background:var(--gray-50)}
               <button class="btn btn-sm" style="background:#D97706;color:#fff" onclick="abrirBloqueioManut()"><i class="ti ti-lock"></i> Bloquear agenda</button>
             </div>
           </div>
+          <div id="mn2-bloqueios" style="display:none;margin-bottom:14px"></div>
           <div id="mn2-resumo" style="display:none;margin-bottom:12px"></div>
           <div id="mn2-list"></div>
         </div>
@@ -1773,7 +1774,7 @@ function renderStats(){
   const disp=veiculos.filter(v=>vSt(v).l==='Disponível').length;
   const uso=veiculos.filter(v=>vSt(v).l==='Em uso').length;
   const res=veiculos.filter(v=>vSt(v).l==='Reservado').length;
-  const mnt=veiculos.filter(v=>v.status==='manutencao').length;
+  const mnt=veiculos.filter(v=>vSt(v).l==='Manutenção').length;
   $('hero-stats').innerHTML=`<div class="hstat"><div class="hstat-n">${veiculos.length}</div><div class="hstat-l">Total</div></div><div class="hstat"><div class="hstat-n" style="color:#4DD68A">${disp}</div><div class="hstat-l">Disponíveis</div></div><div class="hstat"><div class="hstat-n" style="color:#93C5FD">${uso}</div><div class="hstat-l">Em uso</div></div><div class="hstat"><div class="hstat-n" style="color:#FCD34D">${res}</div><div class="hstat-l">Reservados</div></div><div class="hstat"><div class="hstat-n" style="color:#FCA5A5">${mnt}</div><div class="hstat-l">Manutenção</div></div>`;
   $('chips-bar').innerHTML=`<div class="chip"><div class="chip-dot" style="background:var(--green)"></div><div><span class="chip-n">${disp}</span><span class="chip-l">Disponíveis</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--blue3)"></div><div><span class="chip-n">${uso}</span><span class="chip-l">Em uso</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--warn)"></div><div><span class="chip-n">${res}</span><span class="chip-l">Reservados</span></div></div><div class="chip"><div class="chip-dot" style="background:var(--danger)"></div><div><span class="chip-n">${mnt}</span><span class="chip-l">Manutenção</span></div></div>`;
 }
@@ -1974,6 +1975,68 @@ _${primeiroNome} — ${dep}_`;
 // agenda pra manutenção programada (não são viagens reais)
 const MANUT_MARK='🔧 Manutenção Programada';
 function _isManutBlock(r){return r.responsavel===MANUT_MARK;}
+// Bloqueios de agenda (manutenção programada) que cobrem o dia de hoje pra um veículo
+function _bloqueiosAtivos(vid){
+  return reservas.filter(r=>_isManutBlock(r)&&r.status==='aprovado'&&String(r.veiculo_id)===String(vid)&&r.data_saida<=TODAY&&r.data_retorno>=TODAY);
+}
+function _ontem(){
+  const d=new Date();d.setDate(d.getDate()-1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+// Encerra um bloqueio: se já começou, mantém o histórico dos dias passados e
+// termina ontem; se ainda não começou, apaga o registro
+function _encerrarBloqueio(b){
+  if(b.data_saida<TODAY)return SB.from('reservas').update({data_retorno:_ontem()}).eq('id',b.id);
+  return SB.from('reservas').delete().eq('id',b.id);
+}
+function _atualizarTelasBloqueio(){
+  renderVeiculosAdm();renderAll();
+  if($('mn2-bloqueios'))renderBloqueiosManut();
+}
+async function liberarBloqueioVeiculo(vid){
+  const v=veiculos.find(x=>String(x.id)===String(vid));
+  const bl=_bloqueiosAtivos(vid);
+  if(!bl.length){toast('Esse veículo não tem bloqueio de agenda ativo hoje.','info');return}
+  const resumo=bl.map(b=>`• ${b.destino} (${fmt(b.data_saida)} a ${fmt(b.data_retorno)})`).join('\n');
+  if(!confirm(`Liberar ${v?.nome}?\n\n${resumo}\n\nO bloqueio será encerrado e o veículo volta a ficar disponível para reservas.`))return;
+  for(const b of bl){
+    const{error}=await _encerrarBloqueio(b);
+    if(error){toast(_msgErroReserva(error),'err',7000);return}
+  }
+  await loadData();_atualizarTelasBloqueio();
+  toast(`✓ ${v?.nome} liberado — bloqueio de manutenção encerrado.`,'ok');
+}
+async function removerBloqueio(id){
+  const b=reservas.find(x=>x.id===id);
+  if(!b)return;
+  const v=veiculos.find(x=>x.id===b.veiculo_id);
+  if(!confirm(`Remover o bloqueio de ${v?.nome||'veículo'}?\n\n${b.destino} — ${fmt(b.data_saida)} a ${fmt(b.data_retorno)}`))return;
+  const{error}=await _encerrarBloqueio(b);
+  if(error){toast('Erro: '+(error.message||error.code),'err');return}
+  await loadData();_atualizarTelasBloqueio();
+  toast('Bloqueio removido.','info');
+}
+// Lista na aba Manutenção os bloqueios em andamento e os futuros, com botão de remover
+function renderBloqueiosManut(){
+  const el=$('mn2-bloqueios');
+  if(!el)return;
+  const lista=reservas.filter(r=>_isManutBlock(r)&&r.status==='aprovado'&&r.data_retorno>=TODAY)
+    .sort((a,b)=>a.data_saida.localeCompare(b.data_saida));
+  if(!lista.length){el.style.display='none';el.innerHTML='';return}
+  el.style.display='block';
+  el.innerHTML='<div style="font-family:var(--fh);font-size:10px;font-weight:700;color:#9A3412;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px"><i class="ti ti-lock"></i> Bloqueios de agenda (em andamento e futuros)</div>'+
+    lista.map(b=>{
+      const v=veiculos.find(x=>x.id===b.veiculo_id);
+      const emAndamento=b.data_saida<=TODAY;
+      return`<div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:var(--r10);padding:10px 13px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-family:var(--fh);font-weight:600;font-size:13px;color:#9A3412">${esc(v?.nome||'?')} <span style="font-weight:400;font-size:11px">· ${emAndamento?'em andamento':'agendado'}</span></div>
+          <div style="font-size:12px;color:#9A3412">${fmt(b.data_saida)}${b.data_retorno!==b.data_saida?' a '+fmt(b.data_retorno):''} — ${esc(b.destino)}</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="removerBloqueio(${b.id})"><i class="ti ti-lock-open"></i> ${emAndamento?'Liberar veículo':'Remover bloqueio'}</button>
+      </div>`;
+    }).join('');
+}
 function abrirLancamentoManual(){
   const s=$('lm-vei');
   if(s) s.innerHTML=veiculos.map(v=>`<option value="${v.id}">${v.nome} (${v.placa})</option>`).join('');
@@ -2744,7 +2807,7 @@ async function delRes(id){if(!confirm('Remover esta reserva?'))return;const{erro
 
 /* VEÍCULOS ADMIN */
 function renderVeiculosAdm(){
-  $('vei-tbody').innerHTML=veiculos.map(v=>{const s=vSt(v);return`<tr><td><div class="td-p">${v.nome}</div><div style="font-size:10px;color:var(--gray-400)">${v.modelo||''}</div></td><td style="font-family:monospace">${v.placa}</td><td>${(v.km_atual||0).toLocaleString('pt-BR')}</td><td><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></td><td style="font-size:11px">${v.localizacao||'—'}</td><td><div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="abrirVeiModal(${v.id})" title="Editar veículo"><i class="ti ti-edit"></i></button><button class="btn btn-ghost btn-sm" style="color:#0369A1;border-color:#BFDBFE" onclick="abrirCorrecaoKm(${v.id})" title="Corrigir hodômetro"><i class="ti ti-gauge"></i></button><button class="btn btn-warn btn-sm" onclick="abrirSV(${v.id})" title="Alterar status"><i class="ti ti-refresh"></i></button><button class="btn btn-danger btn-sm" onclick="delVei(${v.id})" title="Excluir"><i class="ti ti-trash"></i></button></div></td></tr>`;}).join('')||`<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">Nenhum veículo.</td></tr>`;
+  $('vei-tbody').innerHTML=veiculos.map(v=>{const s=vSt(v);const bloqueado=_bloqueiosAtivos(v.id).length>0;return`<tr><td><div class="td-p">${v.nome}</div><div style="font-size:10px;color:var(--gray-400)">${v.modelo||''}</div></td><td style="font-family:monospace">${v.placa}</td><td>${(v.km_atual||0).toLocaleString('pt-BR')}</td><td><span class="badge ${s.cls}"><i class="ti ${s.ic}"></i>${s.l}</span></td><td style="font-size:11px">${v.localizacao||'—'}</td><td><div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="abrirVeiModal(${v.id})" title="Editar veículo"><i class="ti ti-edit"></i></button><button class="btn btn-ghost btn-sm" style="color:#0369A1;border-color:#BFDBFE" onclick="abrirCorrecaoKm(${v.id})" title="Corrigir hodômetro"><i class="ti ti-gauge"></i></button>${bloqueado?`<button class="btn btn-sm" style="background:#D97706;color:#fff" onclick="liberarBloqueioVeiculo(${v.id})" title="Encerrar o bloqueio de manutenção e liberar o veículo"><i class="ti ti-lock-open"></i> Liberar</button>`:''}<button class="btn btn-warn btn-sm" onclick="abrirSV(${v.id})" title="Alterar status"><i class="ti ti-refresh"></i></button><button class="btn btn-danger btn-sm" onclick="delVei(${v.id})" title="Excluir"><i class="ti ti-trash"></i></button></div></td></tr>`;}).join('')||`<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">Nenhum veículo.</td></tr>`;
 }
 function abrirVeiModal(id){const v=id?veiculos.find(x=>x.id===id):null;$('vm-tit').textContent=v?'Editar veículo':'Novo veículo';$('vf-id').value=v?.id||'';$('vf-nome').value=v?.nome||'';$('vf-mod').value=v?.modelo||'';$('vf-placa').value=v?.placa||'';$('vf-cor').value=v?.cor||'';$('vf-st').value=v?.status||'disponivel';$('vf-km').value=v?.km_atual||'';$('vf-loc').value=v?.localizacao||'';$('vf-oleo').value=v?.ultima_troca_oleo||'';$('vf-prox').value=v?.proxima_troca_oleo_km||'';$('vf-obs').value=v?.obs||'';ov('ov-vei');}
 async function salvarVei(){
@@ -2758,7 +2821,17 @@ async function salvarVei(){
 }
 async function delVei(id){const v=veiculos.find(x=>x.id===id);if(!confirm(`Remover "${v?.nome}"?`))return;const{error}=await SB.from('veiculos').delete().eq('id',id);if(error){toast('Erro','err');return}await loadData();renderVeiculosAdm();renderAll();toast('Removido.','info');}
 function abrirSV(id){const v=veiculos.find(x=>x.id===id);$('sv-id').value=id;$('sv-nm').value=`${v.nome} (${v.placa})`;$('sv-st').value=v.status||'disponivel';$('sv-km').value=v.km_atual||'';$('sv-loc').value=v.localizacao||'';$('sv-obs').value=v.obs||'';ov('ov-sv');}
-async function salvarSV(){const id=$('sv-id').value;const{error}=await SB.from('veiculos').update({status:$('sv-st').value,km_atual:parseInt($('sv-km').value)||0,localizacao:$('sv-loc').value.trim(),obs:$('sv-obs').value.trim()}).eq('id',id);if(error){toast('Erro','err');return}cov('ov-sv');await loadData();renderVeiculosAdm();renderAll();toast('Status atualizado!','ok');}
+async function salvarSV(){const id=$('sv-id').value;
+  // Se o veículo está em "Manutenção" por causa de um bloqueio de agenda, mudar o
+  // status sozinho não resolve — oferece encerrar o bloqueio junto
+  const bl=$('sv-st').value!=='manutencao'?_bloqueiosAtivos(id):[];
+  if(bl.length){
+    const nomeV=veiculos.find(x=>String(x.id)===String(id))?.nome||'Este veículo';
+    if(confirm(`${nomeV} está bloqueado pra manutenção na agenda (${bl.map(b=>b.destino).join(', ')}).\n\nDeseja encerrar o bloqueio agora para liberar o veículo?\n\nOK = encerrar o bloqueio  |  Cancelar = manter o bloqueio`)){
+      for(const b of bl){const{error:eb}=await _encerrarBloqueio(b);if(eb){toast(_msgErroReserva(eb),'err',7000);return}}
+    }
+  }
+  const{error}=await SB.from('veiculos').update({status:$('sv-st').value,km_atual:parseInt($('sv-km').value)||0,localizacao:$('sv-loc').value.trim(),obs:$('sv-obs').value.trim()}).eq('id',id);if(error){toast('Erro','err');return}cov('ov-sv');await loadData();renderVeiculosAdm();renderAll();toast('Status atualizado!','ok');}
 
 function abrirCorrecaoKm(id){
   const v=veiculos.find(x=>x.id===id);
@@ -4627,6 +4700,7 @@ function renderManutencaoAdm(){
   const ate=$('mn2-ate')?.value;
   const el=$('mn2-list');
   if(!el)return;
+  renderBloqueiosManut();
 
   // Collect all manutencoes from all vehicles
   let todas=[];
