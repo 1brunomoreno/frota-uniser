@@ -1877,7 +1877,6 @@ function aplicarSessao(found){
   initCkVFil();
   loadLavagens().then(()=>initLavSec());
   loadAvisos().then(()=>renderAvisosBar());
-  expirarReservasPendentes();
   setTimeout(checkExpiracaoReservas, 3000);
   $('rv-data').value=TODAY;
   $('rv-hora-saida').value=NOW;
@@ -2273,6 +2272,12 @@ async function enviarReserva(){
   if(!vId){toast('Selecione o veículo.','err');return}
   if(!dep||!resp||!data||!dataRet||!hsai||!hret||!dst){toast('Preencha todos os campos obrigatórios.','err');return}
   if(multidia&&dataRet<data){toast('A data de retorno não pode ser anterior à data de saída.','err');return}
+  _tickClock();
+  if(!adminLogado&&(data<TODAY||dataRet<TODAY)){
+    $('rv-data').value=TODAY;if(multidia&&$('rv-data-ret').value<TODAY)$('rv-data-ret').value=TODAY;checkConflictLive();
+    toast(`A data escolhida (${fmt(data)}) já passou. Hoje é ${fmt(TODAY)}. Confira a data e tente de novo; se hoje não for ${fmt(TODAY)}, ajuste o relógio do aparelho.`,'err',9000);
+    return;
+  }
   const novoInicio=_toDateTime(data,hsai),novoFim=_toDateTime(dataRet,hret);
   if(novoFim<=novoInicio){toast('O período de retorno deve ser após a saída.','err');return}
   const confAprov=reservas.find(r=>String(r.veiculo_id)===String(vId)&&r.status==='aprovado'&&_reservaConflita(r,novoInicio,novoFim,RESERVA_BUFFER_MIN));
@@ -2869,6 +2874,7 @@ function atualizarModoAdmin(){
   renderMinhasRes();
   if($('ck-results'))buscarCK();
   renderHome();
+  if(adminLogado)expirarReservasPendentes();
 }
 
 /* SENHA ADMIN — só acessível ao super admin */
@@ -2994,7 +3000,7 @@ function renderAprov(){
   el.innerHTML=pend.map(r=>{
     const v=veiculos.find(x=>x.id===r.veiculo_id);
     return`<div style="background:var(--gray-50);border-radius:var(--r14);border:1.5px solid var(--gray-200);padding:14px 16px;margin-bottom:11px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px"><div><div style="font-family:var(--fh);font-weight:600;font-size:13px">${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></div><div style="font-size:11px;color:var(--gray-400)">${fmt(r.data_saida)} ${r.hora_saida?r.hora_saida+'→'+r.hora_retorno:''} · Solicitado ${fmt(r.criado_em?.split('T')[0])}</div></div>${rbadge(r.status)}</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px"><div><div style="font-family:var(--fh);font-weight:600;font-size:13px">${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></div><div style="font-size:11px;color:var(--gray-400)">${fmt(r.data_saida)} ${r.hora_saida?_hhmm(r.hora_saida)+'→'+_hhmm(r.hora_retorno):''} · Solicitado ${fmt(r.criado_em?.split('T')[0])}</div>${r.data_retorno<TODAY?'<div style="font-size:11px;font-weight:600;color:var(--danger);margin-top:3px"><i class="ti ti-alert-triangle"></i> A data desta solicitação já passou — confira com o solicitante antes de aprovar ou edite a data</div>':''}</div>${rbadge(r.status)}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;margin-bottom:10px">
         <div><span style="color:var(--gray-400)">Resp.:</span> ${esc(r.responsavel)}</div>
         <div><span style="color:var(--gray-400)">Dep.:</span> ${esc(r.departamento)}</div>
@@ -5479,6 +5485,13 @@ function checkExpiracaoReservas(){
 
 // Roda a cada 5 minutos quando logado
 setInterval(()=>{if(currentUser)checkExpiracaoReservas();},5*60*1000);
+// Se o app ficou aberto de um dia pro outro, a data do formulário de reserva ficava velha
+function _renovarDatasForm(){
+  let mudou=false;
+  ['rv-data','rv-data-ret'].forEach(id=>{const el=$(id);if(el&&el.value&&el.value<TODAY){el.value=TODAY;mudou=true;}});
+  if(mudou){checkConflictLive();toast('A data do formulário de reserva foi atualizada para hoje.','info',5000);}
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentUser){_tickClock();_renovarDatasForm();}});
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -5680,15 +5693,20 @@ async function delAviso(id){
    EXPIRAÇÃO AUTOMÁTICA DE RESERVAS PENDENTES
 ============================================================ */
 async function expirarReservasPendentes(){
-  const antigas=reservas.filter(r=>r.status==='pendente'&&r.data_saida<TODAY);
+  // Só uma sessão de administrador limpa pendências antigas: o relógio do aparelho de
+  // um motorista não pode decidir o destino das solicitações das outras pessoas.
+  if(!adminLogado)return;
+  const limite=Date.now()-24*3600*1000;
+  // Expira só quando o período inteiro já passou (data de retorno) e a solicitação tem
+  // mais de 24h — assim uma data errada na criação aparece na lista pro admin corrigir,
+  // em vez de ser negada em silêncio.
+  const antigas=reservas.filter(r=>r.status==='pendente'&&!_isManutBlock(r)&&r.data_retorno<TODAY&&(!r.criado_em||new Date(r.criado_em).getTime()<limite));
   if(!antigas.length)return;
   for(const r of antigas){
-    await SB.from('reservas').update({status:'negado',feedback:'Reserva expirada automaticamente (data já passou).'}).eq('id',r.id);
+    await SB.from('reservas').update({status:'negado',feedback:'Reserva expirada automaticamente (a data já passou sem aprovação).',historico:_addHistorico(r.historico,'expirada automaticamente','')}).eq('id',r.id);
   }
-  if(antigas.length>0){
-    await loadData();renderAll();renderAprov();
-    console.log(`${antigas.length} reserva(s) pendente(s) expirada(s) automaticamente.`);
-  }
+  await loadData();renderAll();renderAprov();
+  console.log(`${antigas.length} reserva(s) pendente(s) expirada(s) automaticamente.`);
 }
 </script>
 </body>
