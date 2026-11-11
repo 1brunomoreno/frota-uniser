@@ -1666,6 +1666,10 @@ async function loadData(){
       SB.from('cpfs_autorizados').select('*').order('nome')
     ]);
     veiculos=v||[];reservas=r||[];cpfs=c||[];
+    // O banco ordena só pela data; dentro do mesmo dia a ordem ficava aleatória.
+    // Ordena aqui (mais recente primeiro, desempate por horário e id) pra todos os
+    // relatórios e listas herdarem a mesma ordem.
+    reservas.sort((x,y)=>(y.data_saida||'').localeCompare(x.data_saida||'')||_hhmm(y.hora_saida).localeCompare(_hhmm(x.hora_saida))||((y.id||0)-(x.id||0)));
   }catch(e){console.error('loadData:',e);}
 }
 
@@ -2179,6 +2183,12 @@ function initCkVFil(){const s=$('ck-vfil');if(s.options.length<=1)veiculos.forEa
 // Só o super administrador em modo admin vê reservas aprovadas ainda não
 // finalizadas de dias passados (pra finalizar quando o condutor esqueceu o checklist)
 function _ehSuperAdmin(){return !!(adminLogado&&currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF);}
+// Checklist já concluído: retorno registrado na data final da reserva. Cobre o caso
+// de uma reserva que continuou com status "aprovado" no banco mesmo com o retorno feito.
+function _ckFinalizado(r){
+  const ck=r.checklist||{};
+  return !!(ck.retorno_hora&&(ck.retorno_data||r.data_retorno)>=r.data_retorno);
+}
 function buscarCK(){
   const nome=($('ck-nome').value||'').trim().toLowerCase();
   const vf=$('ck-vfil').value;
@@ -2191,7 +2201,7 @@ function buscarCK(){
   let aviso='';
   if(admin){
     // Reservas aprovadas que já começaram (hoje ou antes) e ainda não foram finalizadas
-    lista=lista.filter(r=>r.data_saida<=TODAY);
+    lista=lista.filter(r=>r.data_saida<=TODAY&&!_ckFinalizado(r));
     lista.sort((a,b)=>(b.data_saida+_hhmm(b.hora_saida)).localeCompare(a.data_saida+_hhmm(a.hora_saida)));
     const total=lista.length;
     const LIM=40;
