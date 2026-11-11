@@ -1878,6 +1878,7 @@ function aplicarSessao(found){
   loadLavagens().then(()=>initLavSec());
   loadAvisos().then(()=>renderAvisosBar());
   setTimeout(checkExpiracaoReservas, 3000);
+  setTimeout(_checarVersao, 6000);
   $('rv-data').value=TODAY;
   $('rv-hora-saida').value=NOW;
   $('rv-hora-ret').value=NOW;
@@ -1908,6 +1909,7 @@ function renderAll(){renderStats();renderVgrid();renderRvVeiculos();renderCal();
 setInterval(async()=>{
   if(!currentUser)return;
   _tickClock();
+  _checarVersao();
   await loadData();
   await loadLavagens();
   await loadAvisos();
@@ -5489,9 +5491,39 @@ setInterval(()=>{if(currentUser)checkExpiracaoReservas();},5*60*1000);
 function _renovarDatasForm(){
   let mudou=false;
   ['rv-data','rv-data-ret'].forEach(id=>{const el=$(id);if(el&&el.value&&el.value<TODAY){el.value=TODAY;mudou=true;}});
-  if(mudou){checkConflictLive();toast('A data do formulário de reserva foi atualizada para hoje.','info',5000);}
+  if(mudou){
+    // data velha = formulário velho: os horários também eram do login anterior
+    if($('rv-hora-saida'))$('rv-hora-saida').value=NOW;
+    if($('rv-hora-ret'))$('rv-hora-ret').value=NOW;
+    checkConflictLive();
+    toast('O formulário de reserva estava com a data de um dia anterior. Atualizei a data e os horários para agora; confira antes de enviar.','info',7000);
+  }
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentUser){_tickClock();_renovarDatasForm();}});
+// Versão do sistema: quem deixa o app aberto por dias continuava rodando código antigo
+// (inclusive com falhas já corrigidas). Ao voltar pro app, compara com a versão publicada.
+const APP_VERSION='2026-11-12.1';
+let _verChecado=0;
+async function _checarVersao(){
+  if(!/^https?:$/.test(location.protocol))return;
+  if(Date.now()-_verChecado<10*60*1000)return;
+  _verChecado=Date.now();
+  try{
+    const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    const m=(await r.text()).match(/const APP_VERSION='(\d[^']*)'/);
+    if(m&&m[1]!==APP_VERSION)_avisarNovaVersao();
+  }catch(e){}
+}
+function _avisarNovaVersao(){
+  if($('nova-versao'))return;
+  const b=document.createElement('div');
+  b.id='nova-versao';
+  b.setAttribute('role','status');
+  b.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:12px;background:#0A2A54;color:#fff;padding:11px 12px 11px 18px;border-radius:14px;box-shadow:0 10px 30px rgba(0,30,80,.35);font-size:14px;max-width:calc(100vw - 24px)';
+  b.innerHTML='<span>Há uma nova versão do sistema.</span><button onclick="location.reload()" style="background:#00A651;color:#fff;border:0;border-radius:9px;padding:8px 14px;font-family:var(--fh);font-weight:700;font-size:13px;white-space:nowrap">Atualizar agora</button>';
+  document.body.appendChild(b);
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentUser){_tickClock();_renovarDatasForm();_checarVersao();}});
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
