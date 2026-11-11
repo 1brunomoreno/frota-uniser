@@ -2176,23 +2176,39 @@ function abrirDiaCal(ds){
 
 /* CHECKLIST PÚBLICO */
 function initCkVFil(){const s=$('ck-vfil');if(s.options.length<=1)veiculos.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.nome+' ('+v.placa+')';s.appendChild(o);});}
+// Só o super administrador em modo admin vê reservas aprovadas ainda não
+// finalizadas de dias passados (pra finalizar quando o condutor esqueceu o checklist)
+function _ehSuperAdmin(){return !!(adminLogado&&currentUser&&cleanCPF(currentUser.cpf)===SUPER_ADMIN_CPF);}
 function buscarCK(){
   const nome=($('ck-nome').value||'').trim().toLowerCase();
   const vf=$('ck-vfil').value;
   const el=$('ck-results');
-  if(nome.length<2){el.innerHTML='<div class="empty"><i class="ti ti-steering-wheel"></i><h4>Digite seu nome para buscar</h4></div>';return}
-  let lista=reservas.filter(r=>r.status==='aprovado'&&r.responsavel.toLowerCase().includes(nome));
+  const admin=_ehSuperAdmin();
+  if(nome.length<2&&!admin){el.innerHTML='<div class="empty"><i class="ti ti-steering-wheel"></i><h4>Digite seu nome para buscar</h4></div>';return}
+  // Bloqueios de agenda (manutenção programada) nunca entram no checklist
+  let lista=reservas.filter(r=>r.status==='aprovado'&&!_isManutBlock(r)&&(nome.length<2||r.responsavel.toLowerCase().includes(nome)));
   if(vf)lista=lista.filter(r=>r.veiculo_id==vf);
-  // Mostra apenas a reserva do dia de hoje ou uma viagem já em andamento (saída
-  // registrada mas retorno ainda não) — evita que o usuário confunda e faça o
-  // checklist de uma reserva aprovada para outra data.
-  lista=lista.filter(r=>{
-    const emViagem = r.checklist?.saida_hora && !r.checklist?.retorno_hora;
-    const dentroDoPeriodo = r.data_saida<=TODAY && r.data_retorno>=TODAY;
-    return emViagem || dentroDoPeriodo;
-  });
-  if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-search-off"></i><h4>Nenhuma reserva de hoje encontrada</h4><p>Verifique se a reserva foi aprovada para a data de hoje</p></div>';return}
-  el.innerHTML=lista.map(r=>ckCard(r)).join('');
+  let aviso='';
+  if(admin){
+    // Reservas aprovadas que já começaram (hoje ou antes) e ainda não foram finalizadas
+    lista=lista.filter(r=>r.data_saida<=TODAY);
+    lista.sort((a,b)=>(b.data_saida+_hhmm(b.hora_saida)).localeCompare(a.data_saida+_hhmm(a.hora_saida)));
+    const total=lista.length;
+    const LIM=40;
+    if(total>LIM)lista=lista.slice(0,LIM);
+    aviso=`<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--r10);padding:8px 12px;margin-bottom:10px;font-size:12px;color:#1E40AF"><i class="ti ti-shield-check"></i> <strong>Modo administrador:</strong> reservas aprovadas ainda não finalizadas, de hoje e de dias anteriores${total>LIM?` — mostrando as ${LIM} mais recentes de ${total}; digite um nome para filtrar`:` (${total})`}.</div>`;
+  }else{
+    // Mostra apenas a reserva do dia de hoje ou uma viagem já em andamento (saída
+    // registrada mas retorno ainda não) — evita que o usuário confunda e faça o
+    // checklist de uma reserva aprovada para outra data.
+    lista=lista.filter(r=>{
+      const emViagem = r.checklist?.saida_hora && !r.checklist?.retorno_hora;
+      const dentroDoPeriodo = r.data_saida<=TODAY && r.data_retorno>=TODAY;
+      return emViagem || dentroDoPeriodo;
+    });
+  }
+  if(!lista.length){el.innerHTML=aviso+(admin?'<div class="empty"><i class="ti ti-circle-check"></i><h4>Nenhuma reserva pendente de finalização</h4><p>Todas as reservas aprovadas até hoje já têm o checklist concluído.</p></div>':'<div class="empty"><i class="ti ti-search-off"></i><h4>Nenhuma reserva de hoje encontrada</h4><p>Verifique se a reserva foi aprovada para a data de hoje</p></div>');return}
+  el.innerHTML=aviso+lista.map(r=>ckCard(r)).join('');
 }
 function ckCard(r){
   const v=veiculos.find(x=>x.id===r.veiculo_id);
@@ -2207,6 +2223,8 @@ function ckCard(r){
   else if(ck.saida_hora){stCls='ck-viagem';stLbl='🚗 Em viagem';}
   else if(jaConcluidoHoje&&aindaHaDiasFuturos){stCls='ck-conc';stLbl='✅ Concluído hoje';}
   else{stCls='ck-aguard';stLbl='⏳ Aguardando saída';}
+  // Reserva de dia passado ainda sem retorno registrado: sinaliza a pendência
+  if(r.data_retorno<TODAY&&!ck.retorno_hora){stCls='ck-aguard';stLbl=ck.saida_hora?'⚠ Retorno pendente':'⚠ Pendente de finalização';}
   let body='';
   if(jaConcluidoHoje&&aindaHaDiasFuturos&&!ck.saida_hora){
     const diaHoje=diasArquivados.find(d=>d.data===TODAY);
@@ -2232,7 +2250,7 @@ function ckCard(r){
   else if(!ck.saida_hora)btns=`<button class="ck-big-btn ck-saida-btn" onclick="abrirSaida(${r.id})"><i class="ti ti-logout"></i> Registrar Saída</button>`;
   else if(!ck.retorno_hora)btns=`<button class="ck-big-btn ck-retorno-btn" onclick="abrirRetorno(${r.id})"><i class="ti ti-login"></i> Registrar Retorno</button>`;
   else btns=`<div style="text-align:center;padding:6px;font-size:13px;color:var(--green2);font-weight:600;font-family:var(--fh)"><i class="ti ti-circle-check"></i> Viagem concluída!</div>`;
-  return`<div class="ck-card"><div class="ck-card-top"><div><div class="ck-card-name"><i class="ti ti-car" style="color:var(--blue)"></i> ${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></div><div class="ck-card-sub">${fmt(r.data_saida)} ${r.hora_saida?r.hora_saida+' → '+r.hora_retorno:''} · ${esc(r.destino)}</div></div><span class="ck-status ${stCls}">${stLbl}</span></div>${body||btns?`<div class="ck-body">${body}${body&&btns?'<div class="ck-divider"></div>':''}<div class="ck-btn-row">${btns}</div></div>`:''}</div>`;
+  return`<div class="ck-card"><div class="ck-card-top"><div><div class="ck-card-name"><i class="ti ti-car" style="color:var(--blue)"></i> ${v?.nome||'?'} <span style="font-family:monospace;font-size:10px;color:var(--gray-400)">${v?.placa||''}</span></div><div class="ck-card-sub">${fmt(r.data_saida)}${r.data_retorno!==r.data_saida?' a '+fmt(r.data_retorno):''} ${r.hora_saida?_hhmm(r.hora_saida)+' → '+_hhmm(r.hora_retorno):''} · ${esc(r.destino)}${_ehSuperAdmin()?`<br>Resp.: ${esc(r.responsavel)} — ${esc(r.departamento)}`:''}</div></div><span class="ck-status ${stCls}">${stLbl}</span></div>${body||btns?`<div class="ck-body">${body}${body&&btns?'<div class="ck-divider"></div>':''}<div class="ck-btn-row">${btns}</div></div>`:''}</div>`;
 }
 
 function toggleObsSaida(){
@@ -2276,7 +2294,11 @@ function abrirSaida(rid){
   const r=reservas.find(x=>x.id===rid);const v=veiculos.find(x=>x.id===r.veiculo_id);
   $('sd-rid').value=rid;$('sd-vei').value=(v?.nome||'?')+' — '+(v?.placa||'');
   $('sd-resp').value=r.responsavel+' · '+r.departamento;
-  $('sd-data').value=TODAY;$('sd-hora').value=NOW;$('sd-km').value=v?.km_atual||'';
+  // Reserva de dia passado (finalização retroativa): começa com a data e os
+  // horários da própria reserva e o km em branco, pra não herdar o km atual
+  const retroS=r.data_saida<TODAY;
+  $('sd-data').value=retroS?r.data_saida:TODAY;$('sd-hora').value=retroS?_hhmm(r.hora_saida):NOW;$('sd-km').value=retroS?'':(v?.km_atual||'');
+  if(retroS)toast('Reserva de data passada: confira data, horário e km antes de salvar.','info',5500);
   $('sd-cond').value='ok';$('sd-obs').value='';
   // Reset checklist
   ['pneu','fluidos','limpeza'].forEach(id=>{
@@ -2359,7 +2381,9 @@ function abrirRetorno(rid){
   $('rt-rid').value=rid;$('rt-km-saida').value=ck.saida_km||0;
   $('rt-vei').value=(v?.nome||'?')+' — '+(v?.placa||'');
   $('rt-saida-info').innerHTML=`<strong>Saída registrada:</strong> ${fmt(ck.saida_data)} às ${ck.saida_hora} · Km: ${(ck.saida_km||0).toLocaleString('pt-BR')}`;
-  $('rt-data').value=TODAY;$('rt-hora').value=NOW;$('rt-km').value='';$('rt-obs').value='';
+  const retroR=r.data_retorno<TODAY;
+  $('rt-data').value=retroR?r.data_retorno:TODAY;$('rt-hora').value=retroR?_hhmm(r.hora_retorno):NOW;$('rt-km').value='';$('rt-obs').value='';
+  if(retroR)toast('Reserva de data passada: confira data, horário e km antes de salvar.','info',5500);
   // Reset checkboxes
   ['ok','avaria','abast'].forEach(id=>{
     const cb=$('rt-ck-'+id); if(cb){cb.checked=false;}
@@ -2494,6 +2518,7 @@ function atualizarModoAdmin(){
     if(el) el.style.display = modoAdmin ? 'none' : '';
   });
   renderMinhasRes();
+  if($('ck-results'))buscarCK();
 }
 
 /* SENHA ADMIN — só acessível ao super admin */
